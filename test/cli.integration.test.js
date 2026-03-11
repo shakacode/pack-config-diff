@@ -98,22 +98,56 @@ describe("CLI integration", () => {
     expect(logSpy).toHaveBeenNthCalledWith(2, "1 changes: +0 -0 ~1")
   })
 
-  test("accepts --plugin-aware flag", () => {
-    const left = path.join(tempDir, "left.json")
-    const right = path.join(tempDir, "right.json")
+  test("plugin-aware compares shared class instances by options", () => {
+    const sharedPlugin = path.join(tempDir, "shared-plugin.js")
+    const left = path.join(tempDir, "left.js")
+    const right = path.join(tempDir, "right.js")
 
-    fs.writeFileSync(left, JSON.stringify({ mode: "production" }), "utf8")
-    fs.writeFileSync(right, JSON.stringify({ mode: "production" }), "utf8")
+    fs.writeFileSync(
+      sharedPlugin,
+      [
+        "class SharedPlugin {",
+        "  constructor(level) {",
+        "    this.level = level",
+        "  }",
+        "}",
+        "module.exports = { SharedPlugin }"
+      ].join("\n"),
+      "utf8"
+    )
+    fs.writeFileSync(
+      left,
+      [
+        "const { SharedPlugin } = require('./shared-plugin')",
+        "module.exports = { plugins: [new SharedPlugin(2)] }"
+      ].join("\n"),
+      "utf8"
+    )
+    fs.writeFileSync(
+      right,
+      [
+        "const { SharedPlugin } = require('./shared-plugin')",
+        "module.exports = { plugins: [new SharedPlugin(2)] }"
+      ].join("\n"),
+      "utf8"
+    )
 
-    const code = run([
+    const withoutPluginAware = run([
+      `--left=${left}`,
+      `--right=${right}`,
+      "--format=summary"
+    ])
+    const withPluginAware = run([
       `--left=${left}`,
       `--right=${right}`,
       "--format=summary",
       "--plugin-aware"
     ])
 
-    expect(code).toBe(0)
-    expect(logSpy).toHaveBeenCalledWith("✅ No differences found")
+    expect(withoutPluginAware).toBe(1)
+    expect(withPluginAware).toBe(0)
+    expect(logSpy).toHaveBeenNthCalledWith(1, "1 changes: +0 -0 ~1")
+    expect(logSpy).toHaveBeenNthCalledWith(2, "✅ No differences found")
   })
 
   test("returns a helpful message when loading .ts configs without ts-node", () => {

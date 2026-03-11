@@ -284,6 +284,68 @@ describe("DiffEngine", () => {
       expect(result.summary.totalChanges).toBe(1)
       expect(result.entries[0].path.humanPath).toBe("plugin")
     })
+
+    test("plugin-aware comparison requires constructor identity", () => {
+      const makePlugin = () =>
+        class Plugin {
+          constructor() {
+            this.options = { compress: true, level: 3 }
+          }
+        }
+
+      const LeftPlugin = makePlugin()
+      const RightPlugin = makePlugin()
+
+      const engine = new DiffEngine({ pluginAware: true })
+      const result = engine.compare(
+        { plugin: new LeftPlugin() },
+        { plugin: new RightPlugin() }
+      )
+
+      expect(result.summary.totalChanges).toBe(1)
+      expect(result.entries[0].path.humanPath).toBe("plugin")
+    })
+
+    test("plugin-aware comparison serializes Map and Set contents", () => {
+      class Plugin {
+        constructor(mapValue) {
+          this.map = new Map([["key", mapValue]])
+          this.set = new Set(["a", "b"])
+        }
+      }
+
+      const engine = new DiffEngine({ pluginAware: true })
+      const unchanged = engine.compare(
+        { plugin: new Plugin(1) },
+        { plugin: new Plugin(1) }
+      )
+      const changed = engine.compare(
+        { plugin: new Plugin(1) },
+        { plugin: new Plugin(2) }
+      )
+
+      expect(unchanged.summary.totalChanges).toBe(0)
+      expect(changed.summary.totalChanges).toBe(1)
+    })
+
+    test("plugin-aware comparison keeps __instance property in payload", () => {
+      class Plugin {
+        constructor(hasMarker) {
+          if (hasMarker) {
+            this.__instance = "Plugin"
+          }
+          this.options = { enabled: true }
+        }
+      }
+
+      const engine = new DiffEngine({ pluginAware: true })
+      const result = engine.compare(
+        { plugin: new Plugin(true) },
+        { plugin: new Plugin(false) }
+      )
+
+      expect(result.summary.totalChanges).toBe(1)
+    })
   })
 
   describe("metadata", () => {

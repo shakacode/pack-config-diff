@@ -258,10 +258,7 @@ export class DiffEngine {
   }
 
   private arePluginInstancesEqual(left: any, right: any): boolean {
-    const leftName = left?.constructor?.name || "Anonymous"
-    const rightName = right?.constructor?.name || "Anonymous"
-
-    if (leftName !== rightName) {
+    if (left?.constructor !== right?.constructor) {
       return false
     }
 
@@ -272,11 +269,11 @@ export class DiffEngine {
   }
 
   private snapshotPluginInstance(instance: any): string {
-    const seen = new WeakSet<object>()
-    return JSON.stringify(this.normalizeComparableValue(instance, seen))
+    const ancestors = new WeakSet<object>()
+    return JSON.stringify(this.normalizeComparableValue(instance, ancestors))
   }
 
-  private normalizeComparableValue(value: any, seen: WeakSet<object>): any {
+  private normalizeComparableValue(value: any, ancestors: WeakSet<object>): any {
     if (
       value === null ||
       typeof value === "string" ||
@@ -303,34 +300,80 @@ export class DiffEngine {
     }
 
     if (typeof value === "object") {
-      if (seen.has(value)) {
+      if (ancestors.has(value)) {
         return "[Circular]"
       }
-      seen.add(value)
+      ancestors.add(value)
 
-      if (Array.isArray(value)) {
-        return value.map((item) => this.normalizeComparableValue(item, seen))
-      }
+      try {
+        if (Array.isArray(value)) {
+          return value.map((item) =>
+            this.normalizeComparableValue(item, ancestors)
+          )
+        }
 
-      if (this.isPlainObject(value)) {
-        const normalized: Record<string, any> = {}
-        const keys = Object.keys(value).sort()
-        for (const key of keys) {
-          normalized[key] = this.normalizeComparableValue(value[key], seen)
-        }
-        return normalized
-      }
+        if (value instanceof Map) {
+          const normalizedEntries = Array.from(value.entries()).map(
+            ([mapKey, mapValue]) => ({
+              key: this.normalizeComparableValue(mapKey, ancestors),
+              value: this.normalizeComparableValue(mapValue, ancestors)
+            })
+          )
+          normalizedEntries.sort((first, second) =>
+            JSON.stringify(first.key).localeCompare(
+              JSON.stringify(second.key)
+            )
+          )
 
-      if (this.isClassInstance(value)) {
-        const normalized: Record<string, any> = {}
-        const keys = Object.keys(value).sort()
-        for (const key of keys) {
-          normalized[key] = this.normalizeComparableValue(value[key], seen)
+          return {
+            __kind: "Map",
+            entries: normalizedEntries
+          }
         }
-        return {
-          __instance: value.constructor?.name || "Anonymous",
-          ...normalized
+
+        if (value instanceof Set) {
+          const normalizedValues = Array.from(value.values()).map((item) =>
+            this.normalizeComparableValue(item, ancestors)
+          )
+          normalizedValues.sort((first, second) =>
+            JSON.stringify(first).localeCompare(JSON.stringify(second))
+          )
+
+          return {
+            __kind: "Set",
+            values: normalizedValues
+          }
         }
+
+        if (this.isPlainObject(value)) {
+          const normalized: Record<string, any> = {}
+          const keys = Object.keys(value).sort()
+          for (const key of keys) {
+            normalized[key] = this.normalizeComparableValue(
+              value[key],
+              ancestors
+            )
+          }
+          return normalized
+        }
+
+        if (this.isClassInstance(value)) {
+          const normalized: Record<string, any> = {}
+          const keys = Object.keys(value).sort()
+          for (const key of keys) {
+            normalized[key] = this.normalizeComparableValue(
+              value[key],
+              ancestors
+            )
+          }
+          return {
+            __kind: "Instance",
+            constructorName: value.constructor?.name || "Anonymous",
+            properties: normalized
+          }
+        }
+      } finally {
+        ancestors.delete(value)
       }
     }
 
