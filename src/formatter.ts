@@ -54,14 +54,7 @@ export class DiffFormatter {
     lines.push("=".repeat(80))
     lines.push("")
 
-    // Group and sort entries for better readability
-    const sortedEntries = [...result.entries].sort((a, b) => {
-      // Sort by path depth first (shallower first), then alphabetically
-      if (a.path.path.length !== b.path.path.length) {
-        return a.path.path.length - b.path.path.length
-      }
-      return a.path.humanPath.localeCompare(b.path.humanPath)
-    })
+    const sortedEntries = this.sortEntries(result.entries)
 
     let displayIndex = 1
     sortedEntries.forEach((entry) => {
@@ -146,6 +139,69 @@ export class DiffFormatter {
       `${result.summary.totalChanges} changes: ` +
       `+${result.summary.added} -${result.summary.removed} ~${result.summary.changed}`
     )
+  }
+
+  formatMarkdown(result: DiffResult): string {
+    const lines: string[] = []
+    const leftLabel = this.getShortLabel(result.metadata.leftFile, "left")
+    const rightLabel = this.getShortLabel(result.metadata.rightFile, "right")
+
+    lines.push("## pack-config-diff report")
+    lines.push("")
+
+    if (result.metadata.leftFile && result.metadata.rightFile) {
+      lines.push(
+        `Comparing \`${result.metadata.leftFile}\` vs \`${result.metadata.rightFile}\``
+      )
+      lines.push("")
+    }
+
+    lines.push(
+      `**Summary:** ${result.summary.totalChanges} change(s) (+${result.summary.added} / -${result.summary.removed} / ~${result.summary.changed})`
+    )
+    lines.push("")
+
+    if (result.summary.totalChanges === 0) {
+      lines.push("✅ No differences found.")
+      return lines.join("\n")
+    }
+
+    lines.push(
+      `| # | Op | Path | ${leftLabel} | ${rightLabel} |`
+    )
+    lines.push("| --- | --- | --- | --- | --- |")
+
+    const sortedEntries = this.sortEntries(result.entries)
+
+    let row = 1
+    for (const entry of sortedEntries) {
+      if (entry.operation === "unchanged") {
+        continue
+      }
+
+      const symbol =
+        entry.operation === "added"
+          ? "+"
+          : entry.operation === "removed"
+            ? "-"
+            : "~"
+
+      const leftValue =
+        entry.operation === "added"
+          ? "<not set>"
+          : this.formatValue(entry.oldValue)
+      const rightValue =
+        entry.operation === "removed"
+          ? "<not set>"
+          : this.formatValue(entry.newValue)
+
+      lines.push(
+        `| ${row} | ${symbol} | \`${this.escapeMarkdownCell(entry.path.humanPath)}\` | ${this.escapeMarkdownCell(leftValue)} | ${this.escapeMarkdownCell(rightValue)} |`
+      )
+      row += 1
+    }
+
+    return lines.join("\n")
   }
 
   private formatContextualEntry(
@@ -292,6 +348,24 @@ export class DiffFormatter {
     }
 
     return JSON.stringify(value)
+  }
+
+  private escapeMarkdownCell(value: string): string {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\|/g, "\\|")
+      .replace(/\n/g, " ")
+  }
+
+  private sortEntries(entries: DiffEntry[]): DiffEntry[] {
+    return [...entries].sort((a, b) => {
+      if (a.path.path.length !== b.path.path.length) {
+        return a.path.path.length - b.path.path.length
+      }
+      return a.path.humanPath.localeCompare(b.path.humanPath)
+    })
   }
 
   private groupByOperation(

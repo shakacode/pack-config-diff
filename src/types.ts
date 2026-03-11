@@ -36,7 +36,7 @@ export interface DiffOptions {
   maxDepth?: number | null
   ignoreKeys?: string[]
   ignorePaths?: string[]
-  format?: "json" | "yaml" | "summary" | "detailed"
+  format?: "json" | "yaml" | "summary" | "detailed" | "markdown"
   normalizePaths?: boolean
   pathSeparator?: string
   pluginAware?: boolean

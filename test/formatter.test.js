@@ -88,6 +88,49 @@ describe("DiffFormatter", () => {
     })
   })
 
+  describe("formatMarkdown", () => {
+    test("formats markdown table output", () => {
+      const formatter = new DiffFormatter()
+      const output = formatter.formatMarkdown(mockResult)
+
+      expect(output).toContain("## pack-config-diff report")
+      expect(output).toContain("| # | Op | Path | config1 | config2 |")
+      expect(output).toContain("| 1 | ~ | `changedKey` | \"oldValue\" | \"newValue\" |")
+    })
+
+    test("shows clean message when there are no differences", () => {
+      const formatter = new DiffFormatter()
+      const noChanges = {
+        ...mockResult,
+        summary: { totalChanges: 0, added: 0, removed: 0, changed: 0 },
+        entries: []
+      }
+
+      const output = formatter.formatMarkdown(noChanges)
+      expect(output).toContain("✅ No differences found.")
+    })
+
+    test("escapes HTML-like values in markdown table cells", () => {
+      const formatter = new DiffFormatter()
+      const result = {
+        ...mockResult,
+        summary: { totalChanges: 1, added: 1, removed: 0, changed: 0 },
+        entries: [
+          {
+            operation: "added",
+            path: { path: ["raw"], humanPath: "raw" },
+            newValue: "<script>alert('x')</script>",
+            valueType: "string"
+          }
+        ]
+      }
+
+      const output = formatter.formatMarkdown(result)
+      expect(output).toContain("&lt;not set&gt;")
+      expect(output).toContain("&lt;script&gt;alert('x')&lt;/script&gt;")
+    })
+  })
+
   describe("formatDetailed", () => {
     test("includes all sections", () => {
       const formatter = new DiffFormatter()

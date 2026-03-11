@@ -8,7 +8,7 @@ import { DiffFormatter } from "./formatter"
 import { PathNormalizer } from "./pathNormalizer"
 import type { DiffOptions } from "./types"
 
-type OutputFormat = "detailed" | "summary" | "json" | "yaml"
+type OutputFormat = "detailed" | "summary" | "json" | "yaml" | "markdown"
 
 interface ParsedArgs {
   left?: string
@@ -38,7 +38,7 @@ Required Options:
   --right=<file>             Path to the second (right) config file
 
 Output Options:
-  --format=<format>          Output format: detailed, summary, json, yaml (default: detailed)
+  --format=<format>          Output format: detailed, summary, json, yaml, markdown (default: detailed)
   --output=<file>            Write output to file instead of stdout
 
 Comparison Options:
@@ -120,7 +120,7 @@ function parseArgs(args: string[]): ParsedArgs {
           throw new Error("Missing value for --format")
         }
 
-        if (!["detailed", "summary", "json", "yaml"].includes(nextValue)) {
+        if (!["detailed", "summary", "json", "yaml", "markdown"].includes(nextValue)) {
           throw new Error(`Invalid format: ${nextValue}`)
         }
 
@@ -283,6 +283,8 @@ function formatOutput(formatter: DiffFormatter, format: OutputFormat, result: Re
       return formatter.formatYaml(result)
     case "summary":
       return formatter.formatSummary(result)
+    case "markdown":
+      return formatter.formatMarkdown(result)
     case "detailed":
     default:
       return formatter.formatDetailed(result)
