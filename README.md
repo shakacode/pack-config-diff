@@ -75,6 +75,14 @@ pack-config-diff \
   --match-rules-by-test
 ```
 
+```bash
+# 7) Generate markdown output for PR comments
+pack-config-diff \
+  --left=baseline.json \
+  --right=current.json \
+  --format=markdown
+```
+
 ### Example detailed output
 
 ```text
@@ -119,7 +127,7 @@ Required Options:
   --right=<file>             Path to the second (right) config file
 
 Output Options:
-  --format=<format>          Output format: detailed, summary, json, yaml (default: detailed)
+  --format=<format>          Output format: detailed, summary, json, yaml, markdown (default: detailed)
   --output=<file>            Write output to file instead of stdout
 
 Comparison Options:

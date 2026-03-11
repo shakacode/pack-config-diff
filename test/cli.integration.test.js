@@ -47,6 +47,20 @@ describe("CLI integration", () => {
     expect(logSpy).toHaveBeenCalledWith("1 changes: +0 -0 ~1")
   })
 
+  test("supports markdown output format", () => {
+    const left = path.join(tempDir, "left.json")
+    const right = path.join(tempDir, "right.json")
+
+    fs.writeFileSync(left, JSON.stringify({ mode: "development" }), "utf8")
+    fs.writeFileSync(right, JSON.stringify({ mode: "production" }), "utf8")
+
+    const code = run([`--left=${left}`, `--right=${right}`, "--format=markdown"])
+
+    expect(code).toBe(1)
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("## pack-config-diff report"))
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("| # | Op | Path |"))
+  })
+
   test("returns 0 when no differences are found", () => {
     const left = path.join(tempDir, "left.yaml")
     const right = path.join(tempDir, "right.yaml")
