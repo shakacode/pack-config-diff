@@ -223,6 +223,32 @@ describe("DiffEngine", () => {
       expect(result.entries[0].path.humanPath).toContain("module.rules.{test:/")
       expect(result.entries[0].path.humanPath).toContain(".use")
     })
+
+    test("keeps duplicate test-pattern rules aligned across reordering", () => {
+      const left = {
+        module: {
+          rules: [
+            { test: /\\.js$/, use: "thread-loader" },
+            { test: /\\.js$/, use: "babel-loader" },
+            { test: /\\.css$/, use: "css-loader" }
+          ]
+        }
+      }
+      const right = {
+        module: {
+          rules: [
+            { test: /\\.css$/, use: "css-loader" },
+            { test: /\\.js$/, use: "thread-loader" },
+            { test: /\\.js$/, use: "babel-loader" }
+          ]
+        }
+      }
+
+      const engine = new DiffEngine({ matchRulesByTest: true })
+      const result = engine.compare(left, right)
+
+      expect(result.summary.totalChanges).toBe(0)
+    })
   })
 
   describe("special types", () => {
