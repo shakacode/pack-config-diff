@@ -54,14 +54,7 @@ export class DiffFormatter {
     lines.push("=".repeat(80))
     lines.push("")
 
-    // Group and sort entries for better readability
-    const sortedEntries = [...result.entries].sort((a, b) => {
-      // Sort by path depth first (shallower first), then alphabetically
-      if (a.path.path.length !== b.path.path.length) {
-        return a.path.path.length - b.path.path.length
-      }
-      return a.path.humanPath.localeCompare(b.path.humanPath)
-    })
+    const sortedEntries = this.sortEntries(result.entries)
 
     let displayIndex = 1
     sortedEntries.forEach((entry) => {
@@ -178,12 +171,7 @@ export class DiffFormatter {
     )
     lines.push("| --- | --- | --- | --- | --- |")
 
-    const sortedEntries = [...result.entries].sort((a, b) => {
-      if (a.path.path.length !== b.path.path.length) {
-        return a.path.path.length - b.path.path.length
-      }
-      return a.path.humanPath.localeCompare(b.path.humanPath)
-    })
+    const sortedEntries = this.sortEntries(result.entries)
 
     let row = 1
     for (const entry of sortedEntries) {
@@ -363,7 +351,21 @@ export class DiffFormatter {
   }
 
   private escapeMarkdownCell(value: string): string {
-    return value.replace(/\|/g, "\\|").replace(/\n/g, " ")
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\|/g, "\\|")
+      .replace(/\n/g, " ")
+  }
+
+  private sortEntries(entries: DiffEntry[]): DiffEntry[] {
+    return [...entries].sort((a, b) => {
+      if (a.path.path.length !== b.path.path.length) {
+        return a.path.path.length - b.path.path.length
+      }
+      return a.path.humanPath.localeCompare(b.path.humanPath)
+    })
   }
 
   private groupByOperation(
