@@ -25,7 +25,9 @@ describe("CLI integration", () => {
     const code = run(["--help"])
 
     expect(code).toBe(0)
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("pack-config-diff — Semantic config differ"))
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.stringContaining("pack-config-diff — Semantic config differ")
+    )
   })
 
   test("returns 1 when differences are found", () => {
@@ -35,7 +37,11 @@ describe("CLI integration", () => {
     fs.writeFileSync(left, JSON.stringify({ mode: "development" }), "utf8")
     fs.writeFileSync(right, JSON.stringify({ mode: "production" }), "utf8")
 
-    const code = run([`--left=${left}`, `--right=${right}`, "--format=summary"])
+    const code = run([
+      `--left=${left}`,
+      `--right=${right}`,
+      "--format=summary"
+    ])
 
     expect(code).toBe(1)
     expect(logSpy).toHaveBeenCalledWith("1 changes: +0 -0 ~1")
@@ -48,7 +54,11 @@ describe("CLI integration", () => {
     fs.writeFileSync(left, "mode: production\n", "utf8")
     fs.writeFileSync(right, "mode: production\n", "utf8")
 
-    const code = run([`--left=${left}`, `--right=${right}`, "--format=summary"])
+    const code = run([
+      `--left=${left}`,
+      `--right=${right}`,
+      "--format=summary"
+    ])
 
     expect(code).toBe(0)
     expect(logSpy).toHaveBeenCalledWith("✅ No differences found")
@@ -62,7 +72,12 @@ describe("CLI integration", () => {
     fs.writeFileSync(left, JSON.stringify({ mode: "development" }), "utf8")
     fs.writeFileSync(right, JSON.stringify({ mode: "production" }), "utf8")
 
-    const code = run([`--left=${left}`, `--right=${right}`, `--output=${output}`, "--format=summary"])
+    const code = run([
+      `--left=${left}`,
+      `--right=${right}`,
+      `--output=${output}`,
+      "--format=summary"
+    ])
 
     expect(code).toBe(1)
     expect(fs.readFileSync(output, "utf8")).toContain("1 changes: +0 -0 ~1")
@@ -84,7 +99,11 @@ describe("CLI integration", () => {
       "utf8"
     )
 
-    const withNormalization = run([`--left=${left}`, `--right=${right}`, "--format=summary"])
+    const withNormalization = run([
+      `--left=${left}`,
+      `--right=${right}`,
+      "--format=summary"
+    ])
     const withoutNormalization = run([
       `--left=${left}`,
       `--right=${right}`,
@@ -150,11 +169,54 @@ describe("CLI integration", () => {
     expect(logSpy).toHaveBeenNthCalledWith(2, "✅ No differences found")
   })
 
+  test("match-rules-by-test reduces noisy module.rules reorder diffs", () => {
+    const left = path.join(tempDir, "left.json")
+    const right = path.join(tempDir, "right.json")
+
+    fs.writeFileSync(
+      left,
+      JSON.stringify({
+        module: {
+          rules: [
+            { test: "\\\\.js$", use: "babel-loader" },
+            { test: "\\\\.css$", use: ["style-loader", "css-loader"] }
+          ]
+        }
+      }),
+      "utf8"
+    )
+    fs.writeFileSync(
+      right,
+      JSON.stringify({
+        module: {
+          rules: [
+            { test: "\\\\.css$", use: ["style-loader", "css-loader"] },
+            { test: "\\\\.js$", use: "babel-loader" }
+          ]
+        }
+      }),
+      "utf8"
+    )
+
+    const defaultCode = run([`--left=${left}`, `--right=${right}`, "--format=summary"])
+    const matchedCode = run([
+      `--left=${left}`,
+      `--right=${right}`,
+      "--format=summary",
+      "--match-rules-by-test"
+    ])
+
+    expect(defaultCode).toBe(1)
+    expect(matchedCode).toBe(0)
+    expect(logSpy).toHaveBeenNthCalledWith(1, "4 changes: +0 -0 ~4")
+    expect(logSpy).toHaveBeenNthCalledWith(2, "✅ No differences found")
+  })
+
   test("returns a helpful message when loading .ts configs without ts-node", () => {
     const left = path.join(tempDir, "left.ts")
     const right = path.join(tempDir, "right.json")
 
-    fs.writeFileSync(left, "export default { mode: 'production' }\\n", "utf8")
+    fs.writeFileSync(left, "export default { mode: 'production' }\n", "utf8")
     fs.writeFileSync(right, JSON.stringify({ mode: "production" }), "utf8")
 
     const code = run([`--left=${left}`, `--right=${right}`, "--format=summary"])

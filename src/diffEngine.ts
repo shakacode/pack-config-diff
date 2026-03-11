@@ -20,7 +20,8 @@ export class DiffEngine {
       format: options.format ?? "detailed",
       normalizePaths: options.normalizePaths ?? true,
       pathSeparator: options.pathSeparator ?? ".",
-      pluginAware: options.pluginAware ?? false
+      pluginAware: options.pluginAware ?? false,
+      matchRulesByTest: options.matchRulesByTest ?? false
     }
   }
 
@@ -119,12 +120,79 @@ export class DiffEngine {
     path: string[],
     depth: number
   ): void {
+    if (this.shouldMatchRulesByTest(path)) {
+      this.compareModuleRulesByTest(left, right, path, depth)
+      return
+    }
+
     const maxLength = Math.max(left.length, right.length)
 
     for (let i = 0; i < maxLength; i += 1) {
       const newPath = [...path, `[${i}]`]
       this.compareValues(left[i], right[i], newPath, depth + 1)
     }
+  }
+
+  private shouldMatchRulesByTest(path: string[]): boolean {
+    return (
+      this.options.matchRulesByTest &&
+      path.length >= 2 &&
+      path[path.length - 2] === "module" &&
+      path[path.length - 1] === "rules"
+    )
+  }
+
+  private compareModuleRulesByTest(
+    left: any[],
+    right: any[],
+    path: string[],
+    depth: number
+  ): void {
+    const leftByTest = this.indexRulesByTest(left)
+    const rightByTest = this.indexRulesByTest(right)
+    const allKeys = Array.from(
+      new Set([...leftByTest.keys(), ...rightByTest.keys()])
+    ).sort()
+
+    for (const key of allKeys) {
+      this.compareValues(
+        leftByTest.get(key),
+        rightByTest.get(key),
+        [...path, `{${key}}`],
+        depth + 1
+      )
+    }
+  }
+
+  private indexRulesByTest(rules: any[]): Map<string, any> {
+    const indexed = new Map<string, any>()
+    const occurrences = new Map<string, number>()
+
+    rules.forEach((rule, index) => {
+      const baseKey = this.getRuleKey(rule, index)
+      const occurrence = occurrences.get(baseKey) ?? 0
+      occurrences.set(baseKey, occurrence + 1)
+      const key = occurrence === 0 ? baseKey : `${baseKey}#${occurrence}`
+      indexed.set(key, rule)
+    })
+
+    return indexed
+  }
+
+  private getRuleKey(rule: any, index: number): string {
+    if (!this.isPlainObject(rule) || rule.test === undefined) {
+      return `index:${index}`
+    }
+
+    if (rule.test instanceof RegExp) {
+      return `test:${rule.test.toString()}`
+    }
+
+    if (typeof rule.test === "string") {
+      return `test:${rule.test}`
+    }
+
+    return `test:${String(rule.test)}`
   }
 
   private addEntry(

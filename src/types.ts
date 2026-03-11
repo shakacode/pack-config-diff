@@ -40,6 +40,7 @@ export interface DiffOptions {
   normalizePaths?: boolean
   pathSeparator?: string
   pluginAware?: boolean
+  matchRulesByTest?: boolean
 }
 
 export interface NormalizedConfig {
