@@ -249,6 +249,41 @@ describe("DiffEngine", () => {
       expect(result.summary.totalChanges).toBe(1)
       expect(result.entries[0].path.humanPath).toBe("plugin")
     })
+
+    test("supports plugin-aware comparison for class instances", () => {
+      class Plugin {
+        constructor() {
+          this.name = "same"
+          this.options = { compress: true, level: 3 }
+        }
+      }
+
+      const engine = new DiffEngine({ pluginAware: true })
+      const result = engine.compare(
+        { plugin: new Plugin() },
+        { plugin: new Plugin() }
+      )
+
+      expect(result.summary.totalChanges).toBe(0)
+    })
+
+    test("plugin-aware comparison detects option changes", () => {
+      class Plugin {
+        constructor(level) {
+          this.name = "same"
+          this.options = { compress: true, level }
+        }
+      }
+
+      const engine = new DiffEngine({ pluginAware: true })
+      const result = engine.compare(
+        { plugin: new Plugin(2) },
+        { plugin: new Plugin(5) }
+      )
+
+      expect(result.summary.totalChanges).toBe(1)
+      expect(result.entries[0].path.humanPath).toBe("plugin")
+    })
   })
 
   describe("metadata", () => {

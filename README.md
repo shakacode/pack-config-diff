@@ -59,6 +59,14 @@ pack-config-diff \
   --output=diff-report.json
 ```
 
+```bash
+# 5) Reduce plugin-instance noise (constructor + option-aware comparison)
+pack-config-diff \
+  --left=webpack.dev.js \
+  --right=webpack.prod.js \
+  --plugin-aware
+```
+
 ### Example detailed output
 
 ```text
@@ -111,6 +119,7 @@ Comparison Options:
   --max-depth=<number>       Maximum depth for comparison (default: unlimited)
   --ignore-keys=<keys>       Comma-separated list of keys to ignore
   --ignore-paths=<paths>     Comma-separated list of paths to ignore (supports wildcards)
+  --plugin-aware             Compare class-instance plugins by constructor + options
   --no-normalize-paths       Disable automatic path normalization
   --path-separator=<sep>     Path separator for human-readable paths (default: ".")
 

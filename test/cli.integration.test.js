@@ -98,6 +98,24 @@ describe("CLI integration", () => {
     expect(logSpy).toHaveBeenNthCalledWith(2, "1 changes: +0 -0 ~1")
   })
 
+  test("accepts --plugin-aware flag", () => {
+    const left = path.join(tempDir, "left.json")
+    const right = path.join(tempDir, "right.json")
+
+    fs.writeFileSync(left, JSON.stringify({ mode: "production" }), "utf8")
+    fs.writeFileSync(right, JSON.stringify({ mode: "production" }), "utf8")
+
+    const code = run([
+      `--left=${left}`,
+      `--right=${right}`,
+      "--format=summary",
+      "--plugin-aware"
+    ])
+
+    expect(code).toBe(0)
+    expect(logSpy).toHaveBeenCalledWith("✅ No differences found")
+  })
+
   test("returns a helpful message when loading .ts configs without ts-node", () => {
     const left = path.join(tempDir, "left.ts")
     const right = path.join(tempDir, "right.json")

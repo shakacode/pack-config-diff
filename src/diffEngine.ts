@@ -19,7 +19,8 @@ export class DiffEngine {
       ignorePaths: options.ignorePaths ?? [],
       format: options.format ?? "detailed",
       normalizePaths: options.normalizePaths ?? true,
-      pathSeparator: options.pathSeparator ?? "."
+      pathSeparator: options.pathSeparator ?? ".",
+      pluginAware: options.pluginAware ?? false
     }
   }
 
@@ -218,6 +219,14 @@ export class DiffEngine {
       return true
     }
 
+    if (
+      this.options.pluginAware &&
+      this.isClassInstance(left) &&
+      this.isClassInstance(right)
+    ) {
+      return this.arePluginInstancesEqual(left, right)
+    }
+
     if (typeof left === "function" && typeof right === "function") {
       return left.toString() === right.toString()
     }
@@ -231,6 +240,101 @@ export class DiffEngine {
     }
 
     return false
+  }
+
+  private isClassInstance(value: any): boolean {
+    if (
+      value === null ||
+      typeof value !== "object" ||
+      Array.isArray(value) ||
+      value instanceof RegExp ||
+      value instanceof Date
+    ) {
+      return false
+    }
+
+    const prototype = Object.getPrototypeOf(value)
+    return prototype !== Object.prototype && prototype !== null
+  }
+
+  private arePluginInstancesEqual(left: any, right: any): boolean {
+    const leftName = left?.constructor?.name || "Anonymous"
+    const rightName = right?.constructor?.name || "Anonymous"
+
+    if (leftName !== rightName) {
+      return false
+    }
+
+    const leftSnapshot = this.snapshotPluginInstance(left)
+    const rightSnapshot = this.snapshotPluginInstance(right)
+
+    return leftSnapshot === rightSnapshot
+  }
+
+  private snapshotPluginInstance(instance: any): string {
+    const seen = new WeakSet<object>()
+    return JSON.stringify(this.normalizeComparableValue(instance, seen))
+  }
+
+  private normalizeComparableValue(value: any, seen: WeakSet<object>): any {
+    if (
+      value === null ||
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      return value
+    }
+
+    if (value === undefined) {
+      return "[Undefined]"
+    }
+
+    if (typeof value === "function") {
+      return `[Function:${value.name || "anonymous"}:${value.toString()}]`
+    }
+
+    if (value instanceof RegExp) {
+      return `[RegExp:${value.toString()}]`
+    }
+
+    if (value instanceof Date) {
+      return `[Date:${value.toISOString()}]`
+    }
+
+    if (typeof value === "object") {
+      if (seen.has(value)) {
+        return "[Circular]"
+      }
+      seen.add(value)
+
+      if (Array.isArray(value)) {
+        return value.map((item) => this.normalizeComparableValue(item, seen))
+      }
+
+      if (this.isPlainObject(value)) {
+        const normalized: Record<string, any> = {}
+        const keys = Object.keys(value).sort()
+        for (const key of keys) {
+          normalized[key] = this.normalizeComparableValue(value[key], seen)
+        }
+        return normalized
+      }
+
+      if (this.isClassInstance(value)) {
+        const normalized: Record<string, any> = {}
+        const keys = Object.keys(value).sort()
+        for (const key of keys) {
+          normalized[key] = this.normalizeComparableValue(value[key], seen)
+        }
+        return {
+          __instance: value.constructor?.name || "Anonymous",
+          ...normalized
+        }
+      }
+    }
+
+    return `[Unsupported:${String(value)}]`
   }
 
   private getValueType(value: any): string {
