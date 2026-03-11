@@ -39,6 +39,7 @@ export interface DiffOptions {
   format?: "json" | "yaml" | "summary" | "detailed"
   normalizePaths?: boolean
   pathSeparator?: string
+  pluginAware?: boolean
 }
 
 export interface NormalizedConfig {
