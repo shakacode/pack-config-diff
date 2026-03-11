@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+const { run } = require("pack-config-diff")
+
+try {
+  const exitCode = run(process.argv.slice(2))
+  process.exit(exitCode)
+} catch (error) {
+  console.error(error.message)
+  process.exit(1)
+}

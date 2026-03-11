@@ -1,0 +1,11 @@
+mode: development
+devtool: eval-cheap-module-source-map
+output:
+  filename: "[name].js"
+  path: /Users/alice/project/public/packs
+optimization:
+  minimize: false
+  splitChunks:
+    chunks: all
+plugins:
+  - DefinePlugin

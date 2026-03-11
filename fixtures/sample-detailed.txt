@@ -1,0 +1,39 @@
+pack-config-diff — Semantic config diff
+Comparing: fixtures/webpack.dev.js ↔ fixtures/webpack.prod.js
+Found 4 difference(s): 0 added, 0 removed, 4 changed
+
+1. [~] mode
+   Description: Sets webpack optimization defaults for development or production.
+   Affects: Minification, tree-shaking, and debug ergonomics
+   Default: production
+   dev: "development"
+   prod: "production"
+   Impact: Switching mode from development to production changes optimization defaults and debugging behavior.
+   Docs: https://webpack.js.org/configuration/mode/
+
+2. [~] optimization.minimize
+   Description: Enables or disables code minimization.
+   Affects: Bundle size and build time
+   Default: true in production
+   dev: false
+   prod: true
+   Impact: Minification is now enabled, usually reducing bundle size at the cost of build time.
+   Docs: https://webpack.js.org/configuration/optimization/#optimizationminimize
+
+3. [~] output.filename
+   Description: Specifies naming template for entry chunk files.
+   Affects: Cacheability and chunk naming
+   Default: [name].js
+   dev: "bundle.js"
+   prod: "bundle-[contenthash].js"
+   Impact: Filename now includes [contenthash], improving long-term browser caching.
+   Docs: https://webpack.js.org/configuration/output/#outputfilename
+
+4. [~] optimization.minimizer.[0]
+   Description: Overrides minimizer plugins used for optimization.
+   Affects: How JS/CSS assets are minified
+   dev: [Function: anonymous]
+   prod: [Function: anonymous]
+   Docs: https://webpack.js.org/configuration/optimization/#optimizationminimizer
+
+Legend: [+] added, [-] removed, [~] changed
