@@ -47,6 +47,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "prepare": "npm run build",
     "test": "jest",
     "prepublishOnly": "npm run build"
   }
