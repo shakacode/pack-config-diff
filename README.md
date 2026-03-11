@@ -67,6 +67,14 @@ pack-config-diff \
   --plugin-aware
 ```
 
+```bash
+# 6) Ignore module.rules reorder noise by matching rules on `test`
+pack-config-diff \
+  --left=webpack-before.yaml \
+  --right=webpack-after.yaml \
+  --match-rules-by-test
+```
+
 ### Example detailed output
 
 ```text
@@ -120,6 +128,7 @@ Comparison Options:
   --ignore-keys=<keys>       Comma-separated list of keys to ignore
   --ignore-paths=<paths>     Comma-separated list of paths to ignore (supports wildcards)
   --plugin-aware             Compare class-instance plugins by constructor + options
+  --match-rules-by-test      Match module.rules entries by rule test instead of index
   --no-normalize-paths       Disable automatic path normalization
   --path-separator=<sep>     Path separator for human-readable paths (default: ".")
 

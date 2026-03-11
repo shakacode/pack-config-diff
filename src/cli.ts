@@ -17,6 +17,7 @@ interface ParsedArgs {
   output?: string
   includeUnchanged: boolean
   pluginAware: boolean
+  matchRulesByTest: boolean
   maxDepth: number | null
   ignoreKeys: string[]
   ignorePaths: string[]
@@ -46,6 +47,7 @@ Comparison Options:
   --ignore-keys=<keys>       Comma-separated list of keys to ignore
   --ignore-paths=<paths>     Comma-separated list of paths to ignore (supports wildcards)
   --plugin-aware             Compare class-instance plugins by constructor + options
+  --match-rules-by-test      Match module.rules entries by rule test instead of index
   --no-normalize-paths       Disable automatic path normalization
   --path-separator=<sep>     Path separator for human-readable paths (default: ".")
 
@@ -78,6 +80,7 @@ function parseArgs(args: string[]): ParsedArgs {
     format: "detailed",
     includeUnchanged: false,
     pluginAware: false,
+    matchRulesByTest: false,
     maxDepth: null,
     ignoreKeys: [],
     ignorePaths: [],
@@ -141,6 +144,9 @@ function parseArgs(args: string[]): ParsedArgs {
         break
       case "--plugin-aware":
         parsed.pluginAware = true
+        break
+      case "--match-rules-by-test":
+        parsed.matchRulesByTest = true
         break
       case "--max-depth":
         if (!nextValue) {
@@ -305,6 +311,7 @@ export function run(args: string[]): number {
     const options: DiffOptions = {
       includeUnchanged: parsed.includeUnchanged,
       pluginAware: parsed.pluginAware,
+      matchRulesByTest: parsed.matchRulesByTest,
       maxDepth: parsed.maxDepth,
       ignoreKeys: parsed.ignoreKeys,
       ignorePaths: parsed.ignorePaths,

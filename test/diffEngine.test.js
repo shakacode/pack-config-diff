@@ -179,6 +179,50 @@ describe("DiffEngine", () => {
 
       expect(result.summary.totalChanges).toBe(0)
     })
+
+    test("matches module.rules by test when enabled", () => {
+      const left = {
+        module: {
+          rules: [
+            { test: /\\.js$/, use: "babel-loader" },
+            { test: /\\.css$/, use: ["style-loader", "css-loader"] }
+          ]
+        }
+      }
+      const right = {
+        module: {
+          rules: [
+            { test: /\\.css$/, use: ["style-loader", "css-loader"] },
+            { test: /\\.js$/, use: "babel-loader" }
+          ]
+        }
+      }
+
+      const engine = new DiffEngine({ matchRulesByTest: true })
+      const result = engine.compare(left, right)
+
+      expect(result.summary.totalChanges).toBe(0)
+    })
+
+    test("detects actual changes when matching module.rules by test", () => {
+      const left = {
+        module: {
+          rules: [{ test: /\\.js$/, use: "babel-loader" }]
+        }
+      }
+      const right = {
+        module: {
+          rules: [{ test: /\\.js$/, use: "swc-loader" }]
+        }
+      }
+
+      const engine = new DiffEngine({ matchRulesByTest: true })
+      const result = engine.compare(left, right)
+
+      expect(result.summary.totalChanges).toBe(1)
+      expect(result.entries[0].path.humanPath).toContain("module.rules.{test:/")
+      expect(result.entries[0].path.humanPath).toContain(".use")
+    })
   })
 
   describe("special types", () => {
