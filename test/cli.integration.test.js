@@ -51,8 +51,8 @@ describe("CLI integration", () => {
     const left = path.join(tempDir, "left.yaml")
     const right = path.join(tempDir, "right.yaml")
 
-    fs.writeFileSync(left, "mode: production\\n", "utf8")
-    fs.writeFileSync(right, "mode: production\\n", "utf8")
+    fs.writeFileSync(left, "mode: production\n", "utf8")
+    fs.writeFileSync(right, "mode: production\n", "utf8")
 
     const code = run([
       `--left=${left}`,
@@ -131,7 +131,7 @@ describe("CLI integration", () => {
         "  }",
         "}",
         "module.exports = { SharedPlugin }"
-      ].join("\\n"),
+      ].join("\n"),
       "utf8"
     )
     fs.writeFileSync(
@@ -139,7 +139,7 @@ describe("CLI integration", () => {
       [
         "const { SharedPlugin } = require('./shared-plugin')",
         "module.exports = { plugins: [new SharedPlugin(2)] }"
-      ].join("\\n"),
+      ].join("\n"),
       "utf8"
     )
     fs.writeFileSync(
@@ -147,7 +147,7 @@ describe("CLI integration", () => {
       [
         "const { SharedPlugin } = require('./shared-plugin')",
         "module.exports = { plugins: [new SharedPlugin(2)] }"
-      ].join("\\n"),
+      ].join("\n"),
       "utf8"
     )
 
@@ -216,7 +216,7 @@ describe("CLI integration", () => {
     const left = path.join(tempDir, "left.ts")
     const right = path.join(tempDir, "right.json")
 
-    fs.writeFileSync(left, "export default { mode: 'production' }\\n", "utf8")
+    fs.writeFileSync(left, "export default { mode: 'production' }\n", "utf8")
     fs.writeFileSync(right, JSON.stringify({ mode: "production" }), "utf8")
 
     const code = run([`--left=${left}`, `--right=${right}`, "--format=summary"])
