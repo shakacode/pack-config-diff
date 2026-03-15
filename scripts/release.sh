@@ -14,7 +14,7 @@ usage() {
 Usage: ./scripts/release.sh [options]
 
 Options:
-  --dry-run         Validate and preview actions without mutating/publishing
+  --dry-run         Run release-it in dry-run mode
   --skip-tests      Skip test/build checks (not recommended)
   --npm-tag <tag>   Override npm dist-tag (defaults: latest or next for prereleases)
   -h, --help        Show this help message
@@ -98,76 +98,42 @@ else
   EFFECTIVE_NPM_TAG="latest"
 fi
 
-echo "Preparing release:"
+echo "Preparing release (release-it):"
 echo "  changelog version: v$TARGET_VERSION"
 echo "  package.json version: v$CURRENT_VERSION"
 echo "  npm tag: $EFFECTIVE_NPM_TAG"
 echo "Dry run: $DRY_RUN"
 
-if [[ "$SKIP_TESTS" == false ]]; then
-  echo "Running tests..."
-  npm test
-  echo "Building dist..."
-  npm run build
-else
-  echo "Skipping tests/build checks."
-fi
-
-if [[ "$DRY_RUN" == true ]]; then
-  echo "Dry run complete. Planned actions:"
-  echo "  1) npm version $TARGET_VERSION --no-git-tag-version"
-  echo "  2) commit + push package version bump"
-  echo "  3) npm publish --access public --tag $EFFECTIVE_NPM_TAG"
-  echo "  4) git tag v$TARGET_VERSION and push tag"
-  echo "  5) create GitHub release from changelog notes"
-  exit 0
-fi
-
-if [[ -z "${NPM_TOKEN:-}" ]]; then
+if [[ "$DRY_RUN" == false ]] && [[ -z "${NPM_TOKEN:-}" ]]; then
   echo "Error: NPM_TOKEN must be set for publishing." >&2
   exit 1
 fi
 
-echo "Bumping package.json version to $TARGET_VERSION..."
-npm version "$TARGET_VERSION" --no-git-tag-version
-
-git config user.name "${GIT_AUTHOR_NAME:-github-actions[bot]}"
-git config user.email "${GIT_AUTHOR_EMAIL:-41898282+github-actions[bot]@users.noreply.github.com}"
-
-git add package.json
-if [[ -f package-lock.json ]]; then
-  git add package-lock.json
+if [[ "$DRY_RUN" == false ]] && [[ -z "${GITHUB_TOKEN:-}" ]]; then
+  echo "Error: GITHUB_TOKEN must be set for GitHub release creation." >&2
+  exit 1
 fi
 
-if ! git diff --cached --quiet; then
-  git commit -m "chore(release): v$TARGET_VERSION [skip ci]"
-  git push origin main
+RELEASE_IT_ARGS=(
+  "$TARGET_VERSION"
+  "--ci"
+  "--npm.tag=$EFFECTIVE_NPM_TAG"
+)
+
+if [[ "$DRY_RUN" == true ]]; then
+  RELEASE_IT_ARGS+=("--dry-run")
 fi
 
-PUBLISH_ARGS=(publish --access public --tag "$EFFECTIVE_NPM_TAG")
-echo "Running: npm ${PUBLISH_ARGS[*]}"
-npm "${PUBLISH_ARGS[@]}"
-
-git tag -a "v$TARGET_VERSION" -m "v$TARGET_VERSION"
-git push origin "v$TARGET_VERSION"
-
-if command -v gh >/dev/null 2>&1; then
-  RELEASE_NOTES_FILE="$(mktemp)"
-  awk -v version="$TARGET_VERSION" '
-    $0 ~ "^## \\[v"version"\\]" { in_section=1; next }
-    in_section && $0 ~ "^## \\[v" { in_section=0 }
-    in_section { print }
-  ' CHANGELOG.md > "$RELEASE_NOTES_FILE"
-
-  if [[ -s "$RELEASE_NOTES_FILE" ]]; then
-    gh release create "v$TARGET_VERSION" \
-      --title "v$TARGET_VERSION" \
-      --notes-file "$RELEASE_NOTES_FILE"
-  else
-    gh release create "v$TARGET_VERSION" \
-      --title "v$TARGET_VERSION" \
-      --generate-notes
-  fi
+if [[ "$SKIP_TESTS" == true ]]; then
+  export SKIP_RELEASE_TESTS=true
+  echo "Skipping tests/build checks (SKIP_RELEASE_TESTS=true)."
 fi
 
-echo "Release complete: v$TARGET_VERSION"
+echo "Running: npx release-it ${RELEASE_IT_ARGS[*]}"
+npx release-it "${RELEASE_IT_ARGS[@]}"
+
+if [[ "$DRY_RUN" == true ]]; then
+  echo "Dry run complete."
+else
+  echo "Release complete: v$TARGET_VERSION"
+fi

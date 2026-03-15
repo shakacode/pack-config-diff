@@ -4,13 +4,14 @@ This repository uses a changelog-driven release flow modeled after Shakapacker:
 
 - You update `CHANGELOG.md` via `/update-changelog`.
 - You commit and push to `main`.
-- CI runs the release script, bumps `package.json`, publishes npm, tags, and creates the GitHub release.
+- CI runs the release script (powered by `release-it`), bumps `package.json`, publishes npm, tags, and creates the GitHub release.
 
 ## Prerequisites
 
 1. Repository has `NPM_TOKEN` configured in GitHub Actions secrets.
-2. Maintainer has permissions to merge to `main`.
-3. You have `/update-changelog` available in your workflow.
+2. Repository has `GITHUB_TOKEN` available to the workflow (default Actions token is used).
+3. Maintainer has permissions to merge to `main`.
+4. You have `/update-changelog` available in your workflow.
 
 ## Stable Release Protocol
 
@@ -33,7 +34,12 @@ That push triggers `.github/workflows/release-on-main.yml`, which executes `./sc
 4. Commit/push the version bump to `main`.
 5. Publish to npm (`latest` for stable).
 6. Create/push tag `vX.Y.Z`.
-7. Create GitHub release using the matching changelog section.
+7. Create GitHub release via `release-it`.
+
+Release behavior is configured in:
+
+- `.release-it.json`
+- `scripts/release.sh`
 
 ## Prerelease Protocol (`rc` / `beta`)
 

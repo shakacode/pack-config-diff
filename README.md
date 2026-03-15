@@ -194,6 +194,7 @@ Test suites are ported from Shakapacker's `test/configDiffer` and run against th
 - Prerelease protocol: [`docs/releasing.md#prerelease-protocol`](./docs/releasing.md#prerelease-protocol)
 - Update changelog via `/update-changelog`, then merge/push to `main`
 - Release automation workflow: `.github/workflows/release-on-main.yml`
+- Release engine config: `.release-it.json`
 - Local dry run: `npm run release:dry-run`
 
 ## License
