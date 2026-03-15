@@ -187,6 +187,13 @@ npm test
 
 Test suites are ported from Shakapacker's `test/configDiffer` and run against this extracted package.
 
+## Release
+
+- Changelog: [`CHANGELOG.md`](./CHANGELOG.md)
+- Maintainer release guide: [`docs/releasing.md`](./docs/releasing.md)
+- Dry run: `npm run release:dry-run`
+- Publish: `npm run release`
+
 ## License
 
 MIT

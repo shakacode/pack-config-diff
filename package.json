@@ -48,6 +48,8 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
+    "release": "./scripts/release.sh",
+    "release:dry-run": "./scripts/release.sh --dry-run",
     "test": "jest",
     "prepublishOnly": "npm run build"
   }
