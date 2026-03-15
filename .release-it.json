@@ -1,0 +1,20 @@
+{
+  "git": {
+    "requireCleanWorkingDir": true,
+    "requireBranch": "main",
+    "tagName": "v${version}",
+    "commitMessage": "chore(release): v${version} [skip ci]",
+    "commit": true,
+    "tag": true,
+    "push": true
+  },
+  "npm": {
+    "publish": true
+  },
+  "github": {
+    "release": true
+  },
+  "hooks": {
+    "before:init": "if [ \"$SKIP_RELEASE_TESTS\" = \"true\" ]; then echo 'Skipping tests/build via SKIP_RELEASE_TESTS'; else npm test && npm run build; fi"
+  }
+}
