@@ -52,6 +52,86 @@ This will:
 5. Create git tag `v<version>`
 6. Push the tag to `origin`
 
+## Prerelease Protocol
+
+Use this protocol for release candidates (`-rc.N`) and betas (`-beta.N`).
+
+### Version Format
+
+- Stable: `1.2.3`
+- RC: `1.2.3-rc.0`, `1.2.3-rc.1`, ...
+- Beta: `1.2.3-beta.0`, `1.2.3-beta.1`, ...
+
+Changelog headings must match package version exactly:
+
+- `## [v1.2.3-rc.0] - YYYY-MM-DD`
+- `## [v1.2.3-beta.0] - YYYY-MM-DD`
+
+### Dist-Tag Rules
+
+- Prereleases must publish to npm tag `next`.
+- Stable releases publish to npm default tag `latest`.
+
+Never publish prereleases to `latest`.
+
+### RC/Beta Release Steps
+
+1. Set prerelease version:
+
+   ```bash
+   npm version 1.2.3-rc.0 --no-git-tag-version
+   # or
+   npm version 1.2.3-beta.0 --no-git-tag-version
+   ```
+
+2. Update `CHANGELOG.md` with matching prerelease header.
+3. Commit and push version/changelog changes.
+4. Dry run with prerelease dist-tag:
+
+   ```bash
+   npm run release:dry-run -- --npm-tag next
+   ```
+
+5. Publish prerelease:
+
+   ```bash
+   npm run release -- --npm-tag next
+   ```
+
+### Incrementing Existing Prereleases
+
+```bash
+# rc.0 -> rc.1
+npm version prerelease --preid=rc --no-git-tag-version
+
+# beta.0 -> beta.1
+npm version prerelease --preid=beta --no-git-tag-version
+```
+
+After bumping, repeat the same changelog + dry-run + publish flow.
+
+### Promoting to Stable
+
+1. Set stable version:
+
+   ```bash
+   npm version 1.2.3 --no-git-tag-version
+   ```
+
+2. Add stable changelog heading `## [v1.2.3] - YYYY-MM-DD`.
+3. Commit and push.
+4. Run stable dry run:
+
+   ```bash
+   npm run release:dry-run
+   ```
+
+5. Publish stable:
+
+   ```bash
+   npm run release
+   ```
+
 ## Optional Flags
 
 You can run the script directly for advanced usage:
