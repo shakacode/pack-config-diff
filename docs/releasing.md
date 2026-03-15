@@ -1,156 +1,85 @@
 # Releasing `pack-config-diff`
 
-This guide is for maintainers publishing a new npm release.
+This repository uses a changelog-driven release flow modeled after Shakapacker:
+
+- You update `CHANGELOG.md` via `/update-changelog`.
+- You commit and push to `main`.
+- CI runs the release script, bumps `package.json`, publishes npm, tags, and creates the GitHub release.
 
 ## Prerequisites
 
-1. You have publish rights for [`pack-config-diff`](https://www.npmjs.com/package/pack-config-diff).
-2. You are logged in to npm:
+1. Repository has `NPM_TOKEN` configured in GitHub Actions secrets.
+2. Maintainer has permissions to merge to `main`.
+3. You have `/update-changelog` available in your workflow.
 
-   ```bash
-   npm whoami
+## Stable Release Protocol
+
+1. Ensure release-ready PRs are merged.
+2. Run:
+
+   ```text
+   /update-changelog release
    ```
 
-3. 2FA is enabled for your npm account (recommended/expected for publishing).
+3. Review `CHANGELOG.md` for the new top version header (for example `## [v1.2.3] - YYYY-MM-DD`).
+4. Commit and push only changelog/documentation changes.
+5. Merge/push to `main`.
 
-## 1) Update Version and Changelog
+That push triggers `.github/workflows/release-on-main.yml`, which executes `./scripts/release.sh` and will:
 
-1. Ensure all intended PRs are merged to `main`.
-2. Update `package.json` `version` to the target release (if needed).
-3. Update `CHANGELOG.md`:
-   - Add a new heading: `## [vX.Y.Z] - YYYY-MM-DD`
-   - Move items from `Unreleased` into that version section.
-   - Keep `## [Unreleased]` for next changes.
-4. Commit and push those changes.
+1. Read target version from the top changelog version header.
+2. Bump `package.json` (and `package-lock.json`) to that version.
+3. Run tests/build.
+4. Commit/push the version bump to `main`.
+5. Publish to npm (`latest` for stable).
+6. Create/push tag `vX.Y.Z`.
+7. Create GitHub release using the matching changelog section.
 
-## 2) Run a Dry Run
+## Prerelease Protocol (`rc` / `beta`)
+
+### Rules
+
+- Do not manually edit `package.json` version for release prep.
+- Use `/update-changelog rc` or `/update-changelog beta` to produce prerelease headers.
+- Prerelease versions must use npm semver prerelease format:
+  - `1.2.3-rc.0`
+  - `1.2.3-beta.0`
+
+### Steps
+
+1. Run:
+
+   ```text
+   /update-changelog rc
+   ```
+
+   or
+
+   ```text
+   /update-changelog beta
+   ```
+
+2. Confirm top changelog header is prerelease, e.g. `## [v1.2.3-rc.0] - YYYY-MM-DD`.
+3. Commit and push changelog changes.
+4. Merge/push to `main`.
+
+Release automation will detect prerelease version and publish to npm dist-tag `next` automatically.
+
+## Dry Run / Local Verification (Optional)
+
+You can validate locally without publishing:
 
 ```bash
 npm run release:dry-run
 ```
 
-This validates:
-
-- clean git working tree
-- current branch is `main`
-- changelog contains a matching `## [v<package-version>]` heading
-- tests/build pass
-- npm publish packaging preview
-
-## 3) Publish
-
-```bash
-npm run release
-```
-
-This will:
-
-1. Validate working tree + branch + changelog/version consistency
-2. Run `npm test`
-3. Run `npm run build`
-4. Publish to npm (`npm publish --access public`)
-5. Create git tag `v<version>`
-6. Push the tag to `origin`
-
-## Prerelease Protocol
-
-Use this protocol for release candidates (`-rc.N`) and betas (`-beta.N`).
-
-### Version Format
-
-- Stable: `1.2.3`
-- RC: `1.2.3-rc.0`, `1.2.3-rc.1`, ...
-- Beta: `1.2.3-beta.0`, `1.2.3-beta.1`, ...
-
-Changelog headings must match package version exactly:
-
-- `## [v1.2.3-rc.0] - YYYY-MM-DD`
-- `## [v1.2.3-beta.0] - YYYY-MM-DD`
-
-### Dist-Tag Rules
-
-- Prereleases must publish to npm tag `next`.
-- Stable releases publish to npm default tag `latest`.
-
-Never publish prereleases to `latest`.
-
-### RC/Beta Release Steps
-
-1. Set prerelease version:
-
-   ```bash
-   npm version 1.2.3-rc.0 --no-git-tag-version
-   # or
-   npm version 1.2.3-beta.0 --no-git-tag-version
-   ```
-
-2. Update `CHANGELOG.md` with matching prerelease header.
-3. Commit and push version/changelog changes.
-4. Dry run with prerelease dist-tag:
-
-   ```bash
-   npm run release:dry-run -- --npm-tag next
-   ```
-
-5. Publish prerelease:
-
-   ```bash
-   npm run release -- --npm-tag next
-   ```
-
-### Incrementing Existing Prereleases
-
-```bash
-# rc.0 -> rc.1
-npm version prerelease --preid=rc --no-git-tag-version
-
-# beta.0 -> beta.1
-npm version prerelease --preid=beta --no-git-tag-version
-```
-
-After bumping, repeat the same changelog + dry-run + publish flow.
-
-### Promoting to Stable
-
-1. Set stable version:
-
-   ```bash
-   npm version 1.2.3 --no-git-tag-version
-   ```
-
-2. Add stable changelog heading `## [v1.2.3] - YYYY-MM-DD`.
-3. Commit and push.
-4. Run stable dry run:
-
-   ```bash
-   npm run release:dry-run
-   ```
-
-5. Publish stable:
-
-   ```bash
-   npm run release
-   ```
-
-## Optional Flags
-
-You can run the script directly for advanced usage:
-
-```bash
-./scripts/release.sh --dry-run
-./scripts/release.sh --npm-tag next
-./scripts/release.sh --skip-tests
-```
-
-Notes:
-
-- Use `--npm-tag next` for pre-release channels.
-- `--skip-tests` should be used only in exceptional cases.
+This checks branch, changelog/version state, and test/build readiness, and prints planned release actions.
 
 ## Post-Release Checks
 
-1. Verify npm package:
+1. npm package version/dist-tag:
    - <https://www.npmjs.com/package/pack-config-diff>
-2. Verify git tag on GitHub:
+2. Git tag exists:
    - `vX.Y.Z`
-3. Optionally create a GitHub release using the corresponding changelog section.
+3. GitHub release exists:
+   - <https://github.com/shakacode/pack-config-diff/releases>
