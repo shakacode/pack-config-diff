@@ -2,16 +2,17 @@
 
 Semantic configuration differ for webpack and rspack projects.
 
-`pack-config-diff` is the missing tool between config merge helpers and bundle-size differs: it compares **configuration objects themselves** and explains what changed and why it matters.
+`pack-config-diff` compares two webpack/rspack **configuration objects** and explains what changed and why it matters. It understands webpack semantics — each diff entry includes a description, impact note, and link to the relevant webpack docs.
 
 Extracted from [Shakapacker](https://github.com/shakacode/shakapacker), battle-tested in production workflows.
 
 ## Why use this?
 
-- Debug "works in dev, broken in prod" by comparing two generated configs
+- Debug "works in dev, broken in prod" by comparing two configs side by side
 - Validate webpack -> rspack migration parity
 - Audit config changes before/after dependency upgrades
 - Compare CI vs local bundler behavior
+- Generate PR-ready markdown diff reports
 
 ## Install
 
@@ -19,151 +20,85 @@ Extracted from [Shakapacker](https://github.com/shakacode/shakapacker), battle-t
 npm install pack-config-diff
 ```
 
-## CLI
+## Quick start
+
+The tool takes two config files (`--left` and `--right`) and shows what's different between them. Config files can be **JavaScript, TypeScript, JSON, or YAML** — anything that represents a webpack/rspack configuration object.
 
 ```bash
-pack-config-diff --left=webpack-development-client.yaml --right=webpack-production-client.yaml
+pack-config-diff --left=webpack.dev.js --right=webpack.prod.js
 ```
 
-### Shakapacker-style workflow examples
-
-```bash
-# 1) Works in dev, breaks in prod
-pack-config-diff \
-  --left=shakapacker-config-exports/webpack-development-client.yaml \
-  --right=shakapacker-config-exports/webpack-production-client.yaml \
-  --format=summary
 ```
-
-```bash
-# 2) Compare client vs server production bundles
-pack-config-diff \
-  --left=shakapacker-config-exports/webpack-production-client.yaml \
-  --right=shakapacker-config-exports/webpack-production-server.yaml
-```
-
-```bash
-# 3) Focus on core config during webpack -> rspack migration
-pack-config-diff \
-  --left=webpack-config.yaml \
-  --right=rspack-config.yaml \
-  --ignore-paths="plugins.*"
-```
-
-```bash
-# 4) Emit machine-readable report for CI or PR artifacts
-pack-config-diff \
-  --left=baseline.json \
-  --right=current.json \
-  --format=json \
-  --output=diff-report.json
-```
-
-```bash
-# 5) Reduce plugin-instance noise (constructor + option-aware comparison)
-pack-config-diff \
-  --left=webpack.dev.js \
-  --right=webpack.prod.js \
-  --plugin-aware
-```
-
-```bash
-# 6) Ignore module.rules reorder noise by matching rules on `test`
-pack-config-diff \
-  --left=webpack-before.yaml \
-  --right=webpack-after.yaml \
-  --match-rules-by-test
-```
-
-```bash
-# 7) Generate markdown output for PR comments
-pack-config-diff \
-  --left=baseline.json \
-  --right=current.json \
-  --format=markdown
-```
-
-### Example detailed output
-
-```text
 pack-config-diff — Semantic config diff
-Comparing: webpack-development-client.yaml ↔ webpack-production-client.yaml
-Found 3 difference(s): 1 added, 0 removed, 2 changed
+Comparing: webpack.dev.js ↔ webpack.prod.js
+Found 4 difference(s): 0 added, 0 removed, 4 changed
 
 1. [~] mode
    Description: Sets webpack optimization defaults for development or production.
-   dev-client: "development"
-   prod-client: "production"
-   Impact: Switching mode from development to production changes optimization defaults and debugging behavior.
+   dev: "development"
+   prod: "production"
+   Impact: Switching mode from development to production changes optimization defaults
+           and debugging behavior.
    Docs: https://webpack.js.org/configuration/mode/
 
-2. [~] optimization.minimize
-   Description: Enables or disables code minimization.
-   dev-client: false
-   prod-client: true
-   Impact: Minification is now enabled, usually reducing bundle size at the cost of build time.
-   Docs: https://webpack.js.org/configuration/optimization/#optimizationminimize
+2. [~] output.filename
+   Description: Specifies naming template for entry chunk files.
+   dev: "bundle.js"
+   prod: "bundle-[contenthash].js"
+   Impact: Filename now includes [contenthash], improving long-term browser caching.
+   Docs: https://webpack.js.org/configuration/output/#outputfilename
 
-3. [+] target
-   Description: Defines target runtime environment for output bundles.
-   prod-client: "web"
-   Docs: https://webpack.js.org/configuration/target/
+...
 
 Legend: [+] added, [-] removed, [~] changed
 ```
 
-### Help
+### More examples
 
-```text
-pack-config-diff — Semantic config differ for webpack and rspack
+```bash
+# Quick summary for CI scripts
+pack-config-diff --left=dev.json --right=prod.json --format=summary
+# => 3 changes: +1 -0 ~2
 
-Compare two webpack/rspack configuration files and identify differences.
+# Markdown table for PR comments
+pack-config-diff --left=baseline.json --right=current.json --format=markdown
 
-Usage:
-  pack-config-diff --left=<file1> --right=<file2> [options]
+# Ignore plugin noise when comparing JS configs with class instances
+pack-config-diff --left=webpack.dev.js --right=webpack.prod.js --plugin-aware
 
-Required Options:
-  --left=<file>              Path to the first (left) config file
-  --right=<file>             Path to the second (right) config file
+# Ignore rule reorder noise
+pack-config-diff --left=before.yaml --right=after.yaml --match-rules-by-test
 
-Output Options:
-  --format=<format>          Output format: detailed, summary, json, yaml, markdown (default: detailed)
-  --output=<file>            Write output to file instead of stdout
+# Focus on specific areas by ignoring paths
+pack-config-diff --left=a.json --right=b.json --ignore-paths="plugins.*,devServer"
 
-Comparison Options:
-  --include-unchanged        Include unchanged values in output
-  --max-depth=<number>       Maximum depth for comparison (default: unlimited)
-  --ignore-keys=<keys>       Comma-separated list of keys to ignore
-  --ignore-paths=<paths>     Comma-separated list of paths to ignore (supports wildcards)
-  --plugin-aware             Compare class-instance plugins by constructor + options
-  --match-rules-by-test      Match module.rules entries by rule test instead of index
-  --no-normalize-paths       Disable automatic path normalization
-  --path-separator=<sep>     Path separator for human-readable paths (default: ".")
-
-Other Options:
-  --help, -h                 Show this help message
-
-Supported File Formats:
-  - JSON (.json)
-  - YAML (.yaml, .yml)
-  - JavaScript (.js)
-  - TypeScript (.ts) - requires ts-node
-
-Exit Codes:
-  0 - Success, no differences found
-  1 - Differences found or error occurred
+# Save report to a file
+pack-config-diff --left=a.json --right=b.json --format=json --output=report.json
 ```
+
+## What can `--left` and `--right` be?
+
+Any file that contains a webpack/rspack configuration object:
+
+| Format | Extensions | Notes |
+|--------|-----------|-------|
+| **JavaScript** | `.js` | Loaded via `require()`. Supports object exports and function exports `(env, argv) => config` |
+| **TypeScript** | `.ts` | Same as JS, requires `ts-node` as a peer dependency |
+| **JSON** | `.json` | A plain JSON object representing the config |
+| **YAML** | `.yaml`, `.yml` | Same structure as JSON, just in YAML syntax |
+
+You can mix formats: `--left=config.yaml --right=webpack.config.js` works fine.
+
+**YAML and JSON configs** are snapshots of resolved webpack configuration objects — the same data structure that `webpack.config.js` exports, just serialized to a different format. They're useful when you want to compare configs generated by a framework (like Shakapacker), dump configs from CI builds, or store config snapshots in version control.
+
+See [Input Formats](./docs/input-formats.md) for full details and examples.
 
 ## Programmatic API
 
-```js
+```javascript
 const { DiffEngine, DiffFormatter } = require("pack-config-diff")
 
-const engine = new DiffEngine({
-  includeUnchanged: false,
-  ignorePaths: ["plugins.*"]
-})
-
+const engine = new DiffEngine({ ignorePaths: ["plugins.*"] })
 const result = engine.compare(leftConfig, rightConfig, {
   leftFile: "webpack.dev.js",
   rightFile: "webpack.prod.js"
@@ -173,19 +108,23 @@ const formatter = new DiffFormatter()
 console.log(formatter.formatDetailed(result))
 ```
 
-## TypeScript build
+See [Programmatic API docs](./docs/programmatic-api.md) for full API reference.
 
-```bash
-npm run build
-```
+## Documentation
+
+- **[Getting Started](./docs/getting-started.md)** — what this tool does and how to use it
+- **[Input Formats](./docs/input-formats.md)** — JS, TS, JSON, and YAML config files explained
+- **[CLI Reference](./docs/cli-reference.md)** — all options and flags
+- **[Output Formats](./docs/output-formats.md)** — detailed, summary, json, yaml, and markdown
+- **[Comparison Modes](./docs/comparison-modes.md)** — plugin-aware mode, rule matching, path normalization
+- **[Programmatic API](./docs/programmatic-api.md)** — using pack-config-diff from Node.js
+- **[Releasing](./docs/releasing.md)** — how to publish new versions
 
 ## Tests
 
 ```bash
 npm test
 ```
-
-Test suites are ported from Shakapacker's `test/configDiffer` and run against this extracted package.
 
 ## License
 
