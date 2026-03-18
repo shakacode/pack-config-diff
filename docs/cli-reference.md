@@ -2,7 +2,7 @@
 
 ## Usage
 
-```
+```bash
 pack-config-diff diff --left=<file> --right=<file> [options]
 pack-config-diff --left=<file> --right=<file> [options]
 pack-config-diff dump <config-file> [options]
@@ -188,5 +188,5 @@ List available builds in the matrix and exit.
 
 | Code | Meaning |
 |------|---------|
-| `0` | Success (`diff`: no changes found, `dump`: export succeeded) |
+| `0` | Success (`diff`: no changes found; `dump`: export succeeded; or `--help` displayed) |
 | `1` | Differences found (`diff`) or an error occurred |
