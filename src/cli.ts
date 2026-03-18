@@ -1,4 +1,3 @@
-import fs from "fs"
 import path from "path"
 
 import { BuildConfigFileLoader, DEFAULT_BUILD_CONFIG_FILE } from "./buildConfigFile"
@@ -631,11 +630,12 @@ function runDumpFromBuildConfig(parsed: ParsedDumpArgs): number {
     const restoreEnv = applyEnvVariables([...buildEnvEntries, ...parsed.env])
 
     try {
-      const loadedConfig = loadConfigFile(build.config)
+      const envLabel = resolveBuildEnvironmentLabel(build, parsed)
+      const loadedConfig = loadConfigFile(build.config, envLabel)
       outputs.push(
         ...buildSplitDumpOutputs(loadedConfig, {
           bundler: build.bundler,
-          environment: resolveBuildEnvironmentLabel(build, parsed),
+          environment: envLabel,
           buildName: build.name,
           outputs: build.outputs,
           fallbackConfigType: parsed.configType || "client",
@@ -676,12 +676,13 @@ function runDumpSingle(parsed: ParsedDumpArgs): number {
   const restoreEnv = applyEnvVariables(parsed.env)
 
   try {
-    const loadedConfig = loadConfigFile(configFile)
+    const environment = parsed.environment || "development"
+    const loadedConfig = loadConfigFile(configFile, environment)
     const configCount = Array.isArray(loadedConfig) ? loadedConfig.length : 1
     const metadata: DumpMetadata = {
       exportedAt: new Date().toISOString(),
       bundler: parsed.bundler || "webpack",
-      environment: parsed.environment || "development",
+      environment,
       configType: parsed.configType || "client",
       configCount
     }
@@ -771,7 +772,7 @@ function runDiff(args: string[]): number {
   const output = formatDiffOutput(formatter, parsed.format, result)
 
   if (parsed.output) {
-    fs.writeFileSync(path.resolve(parsed.output), `${output}\n`, "utf8")
+    FileWriter.writeSingleFile(path.resolve(parsed.output), `${output}\n`)
   } else {
     console.log(output)
   }

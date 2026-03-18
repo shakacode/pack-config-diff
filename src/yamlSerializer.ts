@@ -176,19 +176,10 @@ export class YamlSerializer {
         }
       }
 
-      if (typeof item === "object" && !Array.isArray(item) && item !== null) {
-        lines.push(`${itemIndent}-`)
-        const nonEmptyLines = serialized
-          .split("\n")
-          .filter((line) => line.trim().length > 0)
-        const indentLevels = nonEmptyLines.map(
-          (line) => line.match(/^\s*/)?.[0].length || 0
-        )
-        const minIndent = indentLevels.length > 0 ? Math.min(...indentLevels) : 0
-        nonEmptyLines.forEach((line) => {
-          lines.push(contentIndent + line.substring(minIndent))
-        })
-      } else if (serialized.includes("\n")) {
+      if (
+        (typeof item === "object" && !Array.isArray(item) && item !== null) ||
+        serialized.includes("\n")
+      ) {
         lines.push(`${itemIndent}-`)
         const nonEmptyLines = serialized
           .split("\n")
@@ -226,6 +217,7 @@ export class YamlSerializer {
     keys.forEach((key) => {
       const value = obj[key]
       const fullKeyPath = keyPath ? `${keyPath}.${key}` : key
+      const safeKey = YamlSerializer.quoteKey(key)
 
       if (this.annotate) {
         const doc = getDocDescription(fullKeyPath)
@@ -235,18 +227,18 @@ export class YamlSerializer {
       }
 
       if (typeof value === "string" && value.includes("\n")) {
-        lines.push(`${keyIndent}${key}: |`)
+        lines.push(`${keyIndent}${safeKey}: |`)
         for (const line of value.split("\n")) {
           lines.push(`${valueIndent}${line}`)
         }
       } else if (value instanceof RegExp || typeof value === "function") {
         const serialized = this.serializeValue(value, indent + 2, fullKeyPath)
-        lines.push(`${keyIndent}${key}: ${serialized}`)
+        lines.push(`${keyIndent}${safeKey}: ${serialized}`)
       } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
         if (Object.keys(value).length === 0) {
-          lines.push(`${keyIndent}${key}: {}`)
+          lines.push(`${keyIndent}${safeKey}: {}`)
         } else {
-          lines.push(`${keyIndent}${key}:`)
+          lines.push(`${keyIndent}${safeKey}:`)
           const nestedLines = this.serializeObject(
             value as Record<string, unknown>,
             indent + 2,
@@ -256,19 +248,48 @@ export class YamlSerializer {
         }
       } else if (Array.isArray(value)) {
         if (value.length === 0) {
-          lines.push(`${keyIndent}${key}: []`)
+          lines.push(`${keyIndent}${safeKey}: []`)
         } else {
-          lines.push(`${keyIndent}${key}:`)
+          lines.push(`${keyIndent}${safeKey}:`)
           const arrayLines = this.serializeArray(value, indent + 2, fullKeyPath)
           lines.push(arrayLines)
         }
       } else {
         const serialized = this.serializeValue(value, indent + 2, fullKeyPath)
-        lines.push(`${keyIndent}${key}: ${serialized}`)
+        lines.push(`${keyIndent}${safeKey}: ${serialized}`)
       }
     })
 
     return lines.join("\n")
+  }
+
+  private static quoteKey(key: string): string {
+    if (
+      key.includes(":") ||
+      key.includes("#") ||
+      key.includes("[") ||
+      key.includes("]") ||
+      key.includes("{") ||
+      key.includes("}") ||
+      key.includes(",") ||
+      key.includes("&") ||
+      key.includes("*") ||
+      key.includes("!") ||
+      key.includes("|") ||
+      key.includes(">") ||
+      key.includes("'") ||
+      key.includes('"') ||
+      key.includes("%") ||
+      key.includes("@") ||
+      key.includes("`") ||
+      key.startsWith(" ") ||
+      key.endsWith(" ") ||
+      key === ""
+    ) {
+      return `"${key.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+    }
+
+    return key
   }
 
   private makePathRelative(str: string): string {

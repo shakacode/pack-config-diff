@@ -59,7 +59,7 @@ export class FileWriter {
     }
   }
 
-  private static validateOutputPath(outputPath: string): void {
+  static validateOutputPath(outputPath: string): void {
     const absPath = resolve(outputPath)
     const cwd = process.cwd()
 
@@ -69,8 +69,8 @@ export class FileWriter {
     }
 
     if (!isWithin(cwd, absPath) && !isWithin(tmpdir(), absPath)) {
-      console.warn(
-        `[pack-config-diff] Warning: Writing to ${absPath} which is outside current directory (${cwd}) or temp (${tmpdir()})`
+      throw new Error(
+        `Refusing to write to ${absPath} — path is outside current directory (${cwd}) and temp directory (${tmpdir()})`
       )
     }
   }
