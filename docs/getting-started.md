@@ -54,26 +54,56 @@ pack-config-diff --left=dev.json --right=prod.json
 
 Output:
 
-```
-pack-config-diff — Semantic config diff
-Comparing: dev.json ↔ prod.json
+```text
+================================================================================
+Webpack/Rspack Configuration Comparison
+================================================================================
+
+Comparing: dev.json
+      vs:  prod.json
+
 Found 2 difference(s): 0 added, 0 removed, 2 changed
 
+================================================================================
+
 1. [~] mode
-   Description: Sets webpack optimization defaults for development or production.
-   dev: "development"
-   prod: "production"
-   Impact: Switching mode from development to production changes optimization defaults and debugging behavior.
-   Docs: https://webpack.js.org/configuration/mode/
+
+   What it does:
+   Defines the environment mode (development, production, or none). Controls built-in optimizations and defaults.
+
+   Affects: Minification, tree-shaking, source maps, and performance optimizations
+
+   Values:
+     dev:  "development"
+     prod: "production"
+
+   Impact: Enabling production optimizations (minification, tree-shaking)
+
+   Documentation: https://webpack.js.org/configuration/mode/
 
 2. [~] optimization.minimize
-   Description: Enables or disables code minimization.
-   dev: false
-   prod: true
-   Impact: Minification is now enabled, usually reducing bundle size at the cost of build time.
-   Docs: https://webpack.js.org/configuration/optimization/#optimizationminimize
 
-Legend: [+] added, [-] removed, [~] changed
+   What it does:
+   Enable/disable minification of JavaScript bundles.
+
+   Affects: Bundle size and build time
+
+   Default: true in production, false in development
+
+   Values:
+     dev:  false
+     prod: true
+
+   Impact: Code will be minified - smaller bundles but slower builds
+
+   Documentation: https://webpack.js.org/configuration/optimization/#optimizationminimize
+
+================================================================================
+
+Legend:
+  [+] = Added in prod
+  [-] = Removed from prod
+  [~] = Changed between configs
 ```
 
 ## Common use cases

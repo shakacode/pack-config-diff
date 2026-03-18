@@ -72,6 +72,8 @@ console.log(yamlOutput)
 ```javascript
 const engine = new DiffEngine({
   includeUnchanged: false,     // include unchanged values in results
+  format: "detailed",          // output format metadata (json/yaml/summary/detailed/markdown)
+  normalizePaths: true,        // convert absolute paths to relative before comparing
   pluginAware: false,          // compare class instances by properties
   matchRulesByTest: false,     // match module.rules by test pattern
   maxDepth: null,              // limit comparison depth (null = unlimited)

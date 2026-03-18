@@ -28,6 +28,8 @@ module.exports = {
 
 If your config exports a function (common with webpack's `--env` support), the tool calls it automatically with `({}, { mode: "production" })`:
 
+> **Note:** Both `--left` and `--right` configs are evaluated with `argv = { mode: "production" }`. This means any mode-dependent branching will reflect production settings for both sides. If your configs rely on `argv.mode` to differentiate environments, consider using static exports or pre-resolved JSON/YAML snapshots instead.
+
 ```javascript
 // webpack.config.js
 module.exports = (env, argv) => ({
@@ -36,17 +38,6 @@ module.exports = (env, argv) => ({
     filename: argv.mode === "production" ? "[name]-[contenthash].js" : "[name].js"
   }
 })
-```
-
-### ES module default export
-
-If the module uses `export default`, the tool resolves it:
-
-```javascript
-// webpack.config.js
-export default {
-  mode: "production"
-}
 ```
 
 ### With real plugins
