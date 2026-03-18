@@ -3,25 +3,25 @@ import path from "path"
 
 import yaml from "js-yaml"
 
-export function resolveExportedConfig(moduleExports: unknown): unknown {
+export function resolveExportedConfig(moduleExports: unknown, mode: string = "production"): unknown {
   if (typeof moduleExports === "function") {
-    return (moduleExports as (env?: unknown, argv?: unknown) => unknown)({}, { mode: "production" })
+    return (moduleExports as (env?: unknown, argv?: unknown) => unknown)({}, { mode })
   }
 
   return moduleExports
 }
 
-export function loadJsLikeConfig(absolutePath: string): unknown {
+export function loadJsLikeConfig(absolutePath: string, mode: string = "production"): unknown {
   const resolvedModulePath = require.resolve(absolutePath)
   delete require.cache[resolvedModulePath]
 
   const moduleExports = require(resolvedModulePath)
   const config = moduleExports?.default ?? moduleExports
 
-  return resolveExportedConfig(config)
+  return resolveExportedConfig(config, mode)
 }
 
-export function loadConfigFile(filePath: string): unknown {
+export function loadConfigFile(filePath: string, mode: string = "production"): unknown {
   const absolutePath = path.resolve(filePath)
   const extension = path.extname(absolutePath).toLowerCase()
 
@@ -40,7 +40,7 @@ export function loadConfigFile(filePath: string): unknown {
       return yaml.load(content)
     }
     case ".js":
-      return loadJsLikeConfig(absolutePath)
+      return loadJsLikeConfig(absolutePath, mode)
     case ".ts":
       try {
         require("ts-node/register/transpile-only")
@@ -50,7 +50,7 @@ export function loadConfigFile(filePath: string): unknown {
         )
       }
 
-      return loadJsLikeConfig(absolutePath)
+      return loadJsLikeConfig(absolutePath, mode)
     default:
       throw new Error(`Unsupported file extension: ${extension || "(none)"}`)
   }

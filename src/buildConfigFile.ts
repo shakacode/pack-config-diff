@@ -53,6 +53,10 @@ export class BuildConfigFileLoader {
 
   resolveBuild(buildName: string, cliBundler?: "webpack" | "rspack"): ResolvedDumpBuild {
     const config = this.load()
+    return this.resolveBuildFromConfig(config, buildName, cliBundler)
+  }
+
+  private resolveBuildFromConfig(config: DumpBuildConfigFile, buildName: string, cliBundler?: "webpack" | "rspack"): ResolvedDumpBuild {
     const build = config.builds[buildName]
 
     if (!build) {
@@ -79,7 +83,7 @@ export class BuildConfigFileLoader {
   resolveAllBuilds(cliBundler?: "webpack" | "rspack"): ResolvedDumpBuild[] {
     const config = this.load()
 
-    return Object.keys(config.builds).map((buildName) => this.resolveBuild(buildName, cliBundler))
+    return Object.keys(config.builds).map((buildName) => this.resolveBuildFromConfig(config, buildName, cliBundler))
   }
 
   listBuilds(cliBundler?: "webpack" | "rspack"): BuildSummary[] {
@@ -179,12 +183,20 @@ export class BuildConfigFileLoader {
       return process.env[variableName] || defaultValue
     })
 
-    expanded = expanded.replace(/\$\{([^}:]+)\}/g, (_match, variableName: string) => {
+    expanded = expanded.replace(/\$\{([^}:]+)\}/g, (match, variableName: string) => {
       if (!BuildConfigFileLoader.isValidEnvVarName(variableName)) {
         return `\${${variableName}}`
       }
 
-      return process.env[variableName] || ""
+      const value = process.env[variableName]
+      if (value === undefined) {
+        throw new Error(
+          `Environment variable '${variableName}' is not set (referenced in ${this.configFilePath}). ` +
+          `Set it or use \${${variableName}:-default} syntax for a default value.`
+        )
+      }
+
+      return value
     })
 
     return expanded
