@@ -1,22 +1,4 @@
-import { isAbsolute, relative } from "path"
-
-function makePathRelative(str: string, rootPath: string): string {
-  if (!isAbsolute(str) || !isAbsolute(rootPath)) {
-    return str
-  }
-
-  const rel = relative(rootPath, str)
-
-  if (rel === "") {
-    return "."
-  }
-
-  if (rel.startsWith("..") || isAbsolute(rel)) {
-    return str
-  }
-
-  return `./${rel}`
-}
+import { makePathRelative } from "./pathUtils"
 
 function getConstructorName(value: unknown): string | undefined {
   if (!value || typeof value !== "object") {
@@ -45,6 +27,10 @@ function cleanValue(value: unknown, rootPath: string, key?: string, parent?: unk
       .map((line) => line.trim())
       .filter((line) => line.length > 0)
       .join(" ")
+  }
+
+  if (value instanceof RegExp) {
+    return value
   }
 
   if (typeof value === "string") {

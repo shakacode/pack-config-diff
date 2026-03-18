@@ -1,6 +1,7 @@
-import { relative, isAbsolute } from "path"
+import { load } from "js-yaml"
 
 import { getDocDescription } from "./configDocs"
+import { makePathRelative } from "./pathUtils"
 import type { DumpMetadata } from "./types"
 
 export class YamlSerializer {
@@ -92,7 +93,7 @@ export class YamlSerializer {
   }
 
   private serializeString(str: string, indent = 0): string {
-    const cleaned = this.makePathRelative(str)
+    const cleaned = makePathRelative(str, this.appRoot)
 
     if (cleaned.includes("\n")) {
       const lines = cleaned.split("\n")
@@ -115,7 +116,8 @@ export class YamlSerializer {
       cleaned.includes("@") ||
       cleaned.includes("`") ||
       cleaned.startsWith(" ") ||
-      cleaned.endsWith(" ")
+      cleaned.endsWith(" ") ||
+      YamlSerializer.isYamlSpecialScalar(cleaned)
     ) {
       return `"${cleaned.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
     }
@@ -292,22 +294,31 @@ export class YamlSerializer {
     return key
   }
 
-  private makePathRelative(str: string): string {
-    if (!isAbsolute(str)) {
-      return str
+  private static isYamlSpecialScalar(value: string): boolean {
+    if (value === "") {
+      return true
     }
 
-    const rel = relative(this.appRoot, str)
-
-    if (rel === "") {
-      return "."
+    const lowercaseValue = value.toLowerCase()
+    if (
+      lowercaseValue === "true" ||
+      lowercaseValue === "false" ||
+      lowercaseValue === "yes" ||
+      lowercaseValue === "no" ||
+      lowercaseValue === "on" ||
+      lowercaseValue === "off" ||
+      lowercaseValue === "null" ||
+      lowercaseValue === "~"
+    ) {
+      return true
     }
 
-    if (rel.startsWith("..") || isAbsolute(rel)) {
-      return str
+    try {
+      const parsed = load(value)
+      return typeof parsed !== "string" || parsed !== value
+    } catch {
+      return true
     }
-
-    return `./${rel}`
   }
 
   private static getConstructorName(obj: unknown): string | null {
