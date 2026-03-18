@@ -1,8 +1,21 @@
+import { isAbsolute, relative } from "path"
+
 function makePathRelative(str: string, rootPath: string): string {
-  if (typeof str === "string" && str.startsWith(rootPath)) {
-    return `./${str.substring(rootPath.length + 1)}`
+  if (!isAbsolute(str) || !isAbsolute(rootPath)) {
+    return str
   }
-  return str
+
+  const rel = relative(rootPath, str)
+
+  if (rel === "") {
+    return "."
+  }
+
+  if (rel.startsWith("..") || isAbsolute(rel)) {
+    return str
+  }
+
+  return `./${rel}`
 }
 
 function getConstructorName(value: unknown): string | undefined {

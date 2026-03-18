@@ -176,19 +176,10 @@ export class YamlSerializer {
         }
       }
 
-      if (typeof item === "object" && !Array.isArray(item) && item !== null) {
-        lines.push(`${itemIndent}-`)
-        const nonEmptyLines = serialized
-          .split("\n")
-          .filter((line) => line.trim().length > 0)
-        const indentLevels = nonEmptyLines.map(
-          (line) => line.match(/^\s*/)?.[0].length || 0
-        )
-        const minIndent = indentLevels.length > 0 ? Math.min(...indentLevels) : 0
-        nonEmptyLines.forEach((line) => {
-          lines.push(contentIndent + line.substring(minIndent))
-        })
-      } else if (serialized.includes("\n")) {
+      if (
+        (typeof item === "object" && !Array.isArray(item) && item !== null) ||
+        serialized.includes("\n")
+      ) {
         lines.push(`${itemIndent}-`)
         const nonEmptyLines = serialized
           .split("\n")
