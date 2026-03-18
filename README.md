@@ -1,8 +1,10 @@
 # pack-config-diff
 
-Semantic configuration differ for webpack and rspack projects.
+Semantic configuration tooling for webpack and rspack projects.
 
-`pack-config-diff` compares two webpack/rspack **configuration objects** and explains what changed and why it matters. It understands webpack semantics — each diff entry includes a description, impact note, and link to the relevant webpack docs.
+`pack-config-diff` supports both:
+- `diff`: compare two webpack/rspack **configuration objects** and explain what changed.
+- `dump`: serialize live webpack/rspack configs to YAML/JSON/inspect for review or diffing.
 
 Extracted from [Shakapacker](https://github.com/shakacode/shakapacker), battle-tested in production workflows.
 
@@ -22,7 +24,9 @@ npm install pack-config-diff
 
 ## Quick start
 
-The tool takes two config files (`--left` and `--right`) and shows what's different between them. Config files can be **JavaScript, TypeScript, JSON, or YAML** — anything that represents a webpack/rspack configuration object.
+### Compare two configs (`diff`)
+
+The tool takes two config files (`--left` and `--right`) and shows what's different between them. Config files can be **JavaScript, TypeScript, JSON, or YAML**.
 
 ```bash
 pack-config-diff --left=webpack.dev.js --right=webpack.prod.js
@@ -53,6 +57,12 @@ Found 4 difference(s): 0 added, 0 removed, 4 changed
 Legend: [+] added, [-] removed, [~] changed
 ```
 
+### Export a live config snapshot (`dump`)
+
+```bash
+pack-config-diff dump webpack.config.js --format=yaml --output=webpack-development-client.yml
+```
+
 ### More examples
 
 ```bash
@@ -74,6 +84,18 @@ pack-config-diff --left=a.json --right=b.json --ignore-paths="plugins.*,devServe
 
 # Save report to a file
 pack-config-diff --left=a.json --right=b.json --format=json --output=report.json
+
+# Dump a config with inline docs (YAML only)
+pack-config-diff dump webpack.config.js --annotate
+
+# Dump as JSON with special value placeholders for functions/RegExp/class instances
+pack-config-diff dump webpack.config.js --format=json
+
+# Dump one named build from a build-matrix config
+pack-config-diff dump --build=prod --config-file=config/pack-config-diff-builds.yml --save-dir=./config-exports
+
+# Dump every build in the matrix
+pack-config-diff dump --all-builds --config-file=config/pack-config-diff-builds.yml
 ```
 
 ## What can `--left` and `--right` be?
@@ -96,7 +118,12 @@ See [Input Formats](./docs/input-formats.md) for full details and examples.
 ## Programmatic API
 
 ```javascript
-const { DiffEngine, DiffFormatter } = require("pack-config-diff")
+const {
+  DiffEngine,
+  DiffFormatter,
+  loadConfigFile,
+  serializeConfig
+} = require("pack-config-diff")
 
 const engine = new DiffEngine({ ignorePaths: ["plugins.*"] })
 const result = engine.compare(leftConfig, rightConfig, {
@@ -106,6 +133,20 @@ const result = engine.compare(leftConfig, rightConfig, {
 
 const formatter = new DiffFormatter()
 console.log(formatter.formatDetailed(result))
+
+const config = loadConfigFile("webpack.config.js")
+const output = serializeConfig(
+  config,
+  {
+    exportedAt: new Date().toISOString(),
+    bundler: "webpack",
+    environment: "development",
+    configType: "client",
+    configCount: 1
+  },
+  { format: "yaml" }
+)
+console.log(output)
 ```
 
 See [Programmatic API docs](./docs/programmatic-api.md) for full API reference.

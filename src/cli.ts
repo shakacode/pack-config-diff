@@ -1,19 +1,23 @@
 import fs from "fs"
 import path from "path"
 
-import yaml from "js-yaml"
-
+import { BuildConfigFileLoader, DEFAULT_BUILD_CONFIG_FILE } from "./buildConfigFile"
+import { cleanConfig } from "./configCleaner"
+import { loadConfigFile } from "./configLoader"
+import { serializeConfig } from "./configSerializer"
 import { DiffEngine } from "./diffEngine"
+import { FileWriter } from "./fileWriter"
 import { DiffFormatter } from "./formatter"
 import { PathNormalizer } from "./pathNormalizer"
-import type { DiffOptions } from "./types"
+import type { DiffOptions, DumpMetadata, FileOutput, ResolvedDumpBuild } from "./types"
 
-type OutputFormat = "detailed" | "summary" | "json" | "yaml" | "markdown"
+type DiffOutputFormat = "detailed" | "summary" | "json" | "yaml" | "markdown"
+type DumpOutputFormat = "yaml" | "json" | "inspect"
 
-interface ParsedArgs {
+interface ParsedDiffArgs {
   left?: string
   right?: string
-  format: OutputFormat
+  format: DiffOutputFormat
   output?: string
   includeUnchanged: boolean
   pluginAware: boolean
@@ -26,33 +30,90 @@ interface ParsedArgs {
   help: boolean
 }
 
-const HELP_TEXT = `pack-config-diff — Semantic config differ for webpack and rspack
+interface ParsedDumpArgs {
+  configFile?: string
+  format: DumpOutputFormat
+  output?: string
+  saveDir?: string
+  annotate: boolean
+  bundler?: "webpack" | "rspack"
+  environment?: string
+  configType?: string
+  appRoot: string
+  env: string[]
+  clean: boolean
+  build?: string
+  allBuilds: boolean
+  listBuilds: boolean
+  buildConfigFile: string
+  help: boolean
+}
 
-Compare two webpack/rspack configuration files and identify differences.
+interface OptionToken {
+  name: string
+  inlineValue?: string
+}
+
+interface SplitDumpOptions {
+  bundler: string
+  environment: string
+  buildName?: string
+  outputs: string[]
+  fallbackConfigType: string
+  parsed: ParsedDumpArgs
+}
+
+const DEFAULT_DUMP_SAVE_DIR = "pack-config-diff-exports"
+
+const HELP_TEXT = `pack-config-diff — Semantic config tooling for webpack and rspack
+
+Commands:
+  diff                          Compare two config files (default command)
+  dump                          Load and serialize a live config file
 
 Usage:
+  pack-config-diff diff --left=<file1> --right=<file2> [options]
   pack-config-diff --left=<file1> --right=<file2> [options]
+  pack-config-diff dump <config-file> [options]
 
-Required Options:
-  --left=<file>              Path to the first (left) config file
-  --right=<file>             Path to the second (right) config file
+Diff Required Options:
+  --left=<file>                 Path to the first (left) config file
+  --right=<file>                Path to the second (right) config file
 
-Output Options:
-  --format=<format>          Output format: detailed, summary, json, yaml, markdown (default: detailed)
-  --output=<file>            Write output to file instead of stdout
+Diff Output Options:
+  --format=<format>             detailed, summary, json, yaml, markdown (default: detailed)
+  --output=<file>               Write diff output to file instead of stdout
 
-Comparison Options:
-  --include-unchanged        Include unchanged values in output
-  --max-depth=<number>       Maximum depth for comparison (default: unlimited)
-  --ignore-keys=<keys>       Comma-separated list of keys to ignore
-  --ignore-paths=<paths>     Comma-separated list of paths to ignore (supports wildcards)
-  --plugin-aware             Compare class-instance plugins by constructor + options
-  --match-rules-by-test      Match module.rules entries by rule test instead of index
-  --no-normalize-paths       Disable automatic path normalization
-  --path-separator=<sep>     Path separator for human-readable paths (default: ".")
+Diff Comparison Options:
+  --include-unchanged           Include unchanged values in output
+  --max-depth=<number>          Maximum depth for comparison (default: unlimited)
+  --ignore-keys=<keys>          Comma-separated list of keys to ignore
+  --ignore-paths=<paths>        Comma-separated list of paths to ignore (supports wildcards)
+  --plugin-aware                Compare class-instance plugins by constructor + options
+  --match-rules-by-test         Match module.rules entries by rule test instead of index
+  --no-normalize-paths          Disable automatic path normalization
+  --path-separator=<sep>        Path separator for human-readable paths (default: ".")
+
+Dump Options:
+  --format=<format>             yaml, json, inspect (default: yaml)
+  --output=<file>               Write serialized output to file instead of stdout
+  --save-dir=<dir>              Write split outputs to a directory
+  --annotate                    Add inline docs (YAML only)
+  --bundler=<webpack|rspack>    Bundler metadata label (or build override)
+  --environment=<name>          Environment metadata label
+  --config-type=<type>          Config type metadata label (default: client)
+  --app-root=<path>             Root path for relativizing absolute paths (default: cwd)
+  --env=<KEY=VALUE>             Set env var before loading config (repeatable)
+  --clean                       Strip plugin internals and compact functions before dump
+
+Build Matrix Options (dump):
+  --config-file=<file>          Build config file (default: config/pack-config-diff-builds.yml)
+  --build=<name>                Dump one named build from build config
+  --all-builds                  Dump all builds from build config
+  --list-builds                 List builds from build config
 
 Other Options:
-  --help, -h                 Show this help message
+  --help, -h                    Show this help message
 
 Supported File Formats:
   - JSON (.json)
@@ -61,8 +122,8 @@ Supported File Formats:
   - TypeScript (.ts) - requires ts-node
 
 Exit Codes:
-  0 - Success, no differences found
-  1 - Differences found or error occurred`
+  0 - Success, no differences found for diff command
+  1 - Differences found for diff, or any command error`
 
 function splitCsv(value: string | undefined): string[] {
   if (!value) {
@@ -75,8 +136,28 @@ function splitCsv(value: string | undefined): string[] {
     .filter((segment) => segment.length > 0)
 }
 
-function parseArgs(args: string[]): ParsedArgs {
-  const parsed: ParsedArgs = {
+function parseOptionToken(arg: string): OptionToken {
+  const delimiterIndex = arg.indexOf("=")
+  if (delimiterIndex === -1) {
+    return { name: arg }
+  }
+
+  return {
+    name: arg.slice(0, delimiterIndex),
+    inlineValue: arg.slice(delimiterIndex + 1)
+  }
+}
+
+function parseBundler(value: string): "webpack" | "rspack" {
+  if (value !== "webpack" && value !== "rspack") {
+    throw new Error(`Invalid bundler: ${value}. Expected 'webpack' or 'rspack'.`)
+  }
+
+  return value
+}
+
+function parseDiffArgs(args: string[]): ParsedDiffArgs {
+  const parsed: ParsedDiffArgs = {
     format: "detailed",
     includeUnchanged: false,
     pluginAware: false,
@@ -91,8 +172,7 @@ function parseArgs(args: string[]): ParsedArgs {
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
-
-    const [name, inlineValue] = arg.split("=", 2)
+    const { name, inlineValue } = parseOptionToken(arg)
     const nextValue = inlineValue ?? (index + 1 < args.length ? args[index + 1] : undefined)
     const consumesNext = inlineValue === undefined
 
@@ -124,7 +204,7 @@ function parseArgs(args: string[]): ParsedArgs {
           throw new Error(`Invalid format: ${nextValue}`)
         }
 
-        parsed.format = nextValue as OutputFormat
+        parsed.format = nextValue as DiffOutputFormat
         if (consumesNext) {
           index += 1
         }
@@ -199,57 +279,179 @@ function parseArgs(args: string[]): ParsedArgs {
   return parsed
 }
 
-function resolveExportedConfig(moduleExports: unknown): unknown {
-  if (typeof moduleExports === "function") {
-    return (moduleExports as (env?: unknown, argv?: unknown) => unknown)({}, { mode: "production" })
+function parseDumpArgs(args: string[]): ParsedDumpArgs {
+  const parsed: ParsedDumpArgs = {
+    format: "yaml",
+    annotate: false,
+    appRoot: process.cwd(),
+    env: [],
+    clean: false,
+    allBuilds: false,
+    listBuilds: false,
+    buildConfigFile: DEFAULT_BUILD_CONFIG_FILE,
+    help: false
   }
 
-  return moduleExports
-}
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
 
-function loadJsLikeConfig(absolutePath: string): unknown {
-  const resolvedModulePath = require.resolve(absolutePath)
-  delete require.cache[resolvedModulePath]
-
-  const moduleExports = require(resolvedModulePath)
-  const config = moduleExports?.default ?? moduleExports
-
-  return resolveExportedConfig(config)
-}
-
-function loadConfigFile(filePath: string): unknown {
-  const absolutePath = path.resolve(filePath)
-  const extension = path.extname(absolutePath).toLowerCase()
-
-  if (!fs.existsSync(absolutePath)) {
-    throw new Error(`Config file not found: ${filePath}`)
-  }
-
-  switch (extension) {
-    case ".json": {
-      const content = fs.readFileSync(absolutePath, "utf8")
-      return JSON.parse(content)
-    }
-    case ".yaml":
-    case ".yml": {
-      const content = fs.readFileSync(absolutePath, "utf8")
-      return yaml.load(content)
-    }
-    case ".js":
-      return loadJsLikeConfig(absolutePath)
-    case ".ts":
-      try {
-        require("ts-node/register/transpile-only")
-      } catch (error) {
-        throw new Error(
-          `Cannot load TypeScript config (${filePath}): ts-node is required. Install it with \"npm install --save-dev ts-node\".`
-        )
+    if (!arg.startsWith("-")) {
+      if (!parsed.configFile) {
+        parsed.configFile = arg
+        continue
       }
 
-      return loadJsLikeConfig(absolutePath)
-    default:
-      throw new Error(`Unsupported file extension: ${extension || "(none)"}`)
+      throw new Error(`Unexpected positional argument: ${arg}`)
+    }
+
+    const { name, inlineValue } = parseOptionToken(arg)
+    const nextValue = inlineValue ?? (index + 1 < args.length ? args[index + 1] : undefined)
+    const consumesNext = inlineValue === undefined
+
+    switch (name) {
+      case "--format": {
+        if (!nextValue) {
+          throw new Error("Missing value for --format")
+        }
+
+        if (!["yaml", "json", "inspect"].includes(nextValue)) {
+          throw new Error(`Invalid dump format: ${nextValue}`)
+        }
+
+        parsed.format = nextValue as DumpOutputFormat
+        if (consumesNext) {
+          index += 1
+        }
+        break
+      }
+      case "--output":
+        if (!nextValue) {
+          throw new Error("Missing value for --output")
+        }
+        parsed.output = nextValue
+        if (consumesNext) {
+          index += 1
+        }
+        break
+      case "--save-dir":
+        if (!nextValue) {
+          throw new Error("Missing value for --save-dir")
+        }
+        parsed.saveDir = nextValue
+        if (consumesNext) {
+          index += 1
+        }
+        break
+      case "--annotate":
+        parsed.annotate = true
+        break
+      case "--bundler":
+        if (!nextValue) {
+          throw new Error("Missing value for --bundler")
+        }
+        parsed.bundler = parseBundler(nextValue)
+        if (consumesNext) {
+          index += 1
+        }
+        break
+      case "--environment":
+        if (!nextValue) {
+          throw new Error("Missing value for --environment")
+        }
+        parsed.environment = nextValue
+        if (consumesNext) {
+          index += 1
+        }
+        break
+      case "--config-type":
+        if (!nextValue) {
+          throw new Error("Missing value for --config-type")
+        }
+        parsed.configType = nextValue
+        if (consumesNext) {
+          index += 1
+        }
+        break
+      case "--app-root":
+        if (!nextValue) {
+          throw new Error("Missing value for --app-root")
+        }
+        parsed.appRoot = path.resolve(nextValue)
+        if (consumesNext) {
+          index += 1
+        }
+        break
+      case "--env":
+        if (!nextValue) {
+          throw new Error("Missing value for --env")
+        }
+        parsed.env.push(nextValue)
+        if (consumesNext) {
+          index += 1
+        }
+        break
+      case "--clean":
+        parsed.clean = true
+        break
+      case "--config-file":
+        if (!nextValue) {
+          throw new Error("Missing value for --config-file")
+        }
+        parsed.buildConfigFile = nextValue
+        if (consumesNext) {
+          index += 1
+        }
+        break
+      case "--build":
+        if (!nextValue) {
+          throw new Error("Missing value for --build")
+        }
+        parsed.build = nextValue
+        if (consumesNext) {
+          index += 1
+        }
+        break
+      case "--all-builds":
+        parsed.allBuilds = true
+        break
+      case "--list-builds":
+        parsed.listBuilds = true
+        break
+      case "--help":
+      case "-h":
+        parsed.help = true
+        break
+      default:
+        throw new Error(`Unknown argument: ${arg}`)
+    }
   }
+
+  if (parsed.build && parsed.allBuilds) {
+    throw new Error("--build and --all-builds are mutually exclusive")
+  }
+
+  if (parsed.output && parsed.allBuilds) {
+    throw new Error("--output cannot be used with --all-builds. Use --save-dir instead.")
+  }
+
+  if (parsed.listBuilds && (parsed.build || parsed.allBuilds || parsed.configFile)) {
+    throw new Error("--list-builds cannot be combined with positional config file, --build, or --all-builds")
+  }
+
+  const usingBuildConfig = parsed.listBuilds || parsed.allBuilds || Boolean(parsed.build)
+  if (usingBuildConfig && parsed.configFile) {
+    throw new Error(
+      "Positional <config-file> cannot be combined with --build/--all-builds/--list-builds"
+    )
+  }
+
+  if (!parsed.help && !parsed.configFile && !usingBuildConfig) {
+    throw new Error(
+      "Missing required config file path for dump command. Provide <config-file> or use --build/--all-builds/--list-builds."
+    )
+  }
+
+  return parsed
 }
 
 function maybeNormalizeConfig(config: unknown, enabled: boolean): { normalizedConfig: unknown; metadata: unknown } {
@@ -275,7 +477,7 @@ function maybeNormalizeConfig(config: unknown, enabled: boolean): { normalizedCo
   }
 }
 
-function formatOutput(formatter: DiffFormatter, format: OutputFormat, result: ReturnType<DiffEngine["compare"]>): string {
+function formatDiffOutput(formatter: DiffFormatter, format: DiffOutputFormat, result: ReturnType<DiffEngine["compare"]>): string {
   switch (format) {
     case "json":
       return formatter.formatJson(result)
@@ -291,53 +493,309 @@ function formatOutput(formatter: DiffFormatter, format: OutputFormat, result: Re
   }
 }
 
-export function run(args: string[]): number {
-  try {
-    const parsed = parseArgs(args)
+function applyEnvVariables(entries: string[]): () => void {
+  const parsedEntries = entries.map((entry) => {
+    const delimiterIndex = entry.indexOf("=")
+    if (delimiterIndex <= 0) {
+      throw new Error(`Invalid --env value: ${entry}. Expected KEY=VALUE.`)
+    }
 
-    if (parsed.help) {
-      console.log(HELP_TEXT)
+    return {
+      key: entry.slice(0, delimiterIndex),
+      value: entry.slice(delimiterIndex + 1)
+    }
+  })
+
+  const previousValues = new Map<string, string | undefined>()
+
+  parsedEntries.forEach(({ key, value }) => {
+    if (!previousValues.has(key)) {
+      previousValues.set(key, process.env[key])
+    }
+
+    process.env[key] = value
+  })
+
+  return () => {
+    previousValues.forEach((value, key) => {
+      if (value === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = value
+      }
+    })
+  }
+}
+
+function serializeDumpPayload(config: unknown, metadata: DumpMetadata, parsed: ParsedDumpArgs): string {
+  const serializedConfig = parsed.clean ? cleanConfig(config, parsed.appRoot) : config
+
+  return serializeConfig(serializedConfig, metadata, {
+    format: parsed.format,
+    annotate: parsed.annotate,
+    appRoot: parsed.appRoot
+  })
+}
+
+function resolveConfigTypes(configCount: number, configuredTypes: string[], fallbackType: string): string[] {
+  if (configuredTypes.length > 0) {
+    if (configuredTypes.length !== configCount) {
+      throw new Error(
+        `Config output count mismatch: loaded ${configCount} config(s) but outputs specifies ${configuredTypes.length} type(s)`
+      )
+    }
+
+    return configuredTypes
+  }
+
+  if (configCount === 1) {
+    return [fallbackType]
+  }
+
+  return Array.from({ length: configCount }, (_, index) => `config-${index + 1}`)
+}
+
+function buildSplitDumpOutputs(config: unknown, options: SplitDumpOptions): FileOutput[] {
+  const configs = Array.isArray(config) ? config : [config]
+  const configTypes = resolveConfigTypes(
+    configs.length,
+    options.outputs,
+    options.fallbackConfigType
+  )
+
+  return configs.map((singleConfig, index) => {
+    const metadata: DumpMetadata = {
+      exportedAt: new Date().toISOString(),
+      bundler: options.bundler,
+      environment: options.environment,
+      configType: configTypes[index],
+      configCount: configs.length
+    }
+
+    const content = serializeDumpPayload(singleConfig, metadata, options.parsed)
+
+    return {
+      filename: FileWriter.generateFilename(
+        options.bundler,
+        options.environment,
+        metadata.configType,
+        options.parsed.format,
+        options.buildName
+      ),
+      content: `${content}\n`,
+      metadata
+    }
+  })
+}
+
+function resolveBuildEnvironmentLabel(build: ResolvedDumpBuild, parsed: ParsedDumpArgs): string {
+  return parsed.environment || build.environment.NODE_ENV || "development"
+}
+
+function printBuildSummaries(loader: BuildConfigFileLoader, parsed: ParsedDumpArgs): void {
+  const builds = loader.listBuilds(parsed.bundler)
+
+  console.log(`Available builds in ${loader.filePath}:`)
+  builds.forEach((build) => {
+    console.log(``)
+    console.log(`- ${build.name}`)
+    if (build.description) {
+      console.log(`  description: ${build.description}`)
+    }
+    console.log(`  bundler: ${build.bundler}`)
+    console.log(`  config: ${build.config}`)
+    if (build.outputs.length > 0) {
+      console.log(`  outputs: ${build.outputs.join(", ")}`)
+    }
+  })
+}
+
+function runDumpFromBuildConfig(parsed: ParsedDumpArgs): number {
+  const loader = new BuildConfigFileLoader(parsed.buildConfigFile)
+
+  if (parsed.listBuilds) {
+    printBuildSummaries(loader, parsed)
+    return 0
+  }
+
+  const builds = parsed.allBuilds
+    ? loader.resolveAllBuilds(parsed.bundler)
+    : [loader.resolveBuild(parsed.build as string, parsed.bundler)]
+
+  const outputs: FileOutput[] = []
+
+  for (const build of builds) {
+    const buildEnvEntries = Object.entries(build.environment).map(
+      ([key, value]) => `${key}=${value}`
+    )
+    const restoreEnv = applyEnvVariables([...buildEnvEntries, ...parsed.env])
+
+    try {
+      const loadedConfig = loadConfigFile(build.config)
+      outputs.push(
+        ...buildSplitDumpOutputs(loadedConfig, {
+          bundler: build.bundler,
+          environment: resolveBuildEnvironmentLabel(build, parsed),
+          buildName: build.name,
+          outputs: build.outputs,
+          fallbackConfigType: parsed.configType || "client",
+          parsed
+        })
+      )
+    } finally {
+      restoreEnv()
+    }
+  }
+
+  if (parsed.output) {
+    if (outputs.length !== 1) {
+      throw new Error("--output can only be used when exactly one config output is generated")
+    }
+
+    FileWriter.writeSingleFile(path.resolve(parsed.output), outputs[0].content)
+    return 0
+  }
+
+  const shouldWriteFiles = parsed.allBuilds || Boolean(parsed.saveDir) || outputs.length > 1
+  if (shouldWriteFiles) {
+    const targetDir = path.resolve(parsed.saveDir || DEFAULT_DUMP_SAVE_DIR)
+    FileWriter.writeMultipleFiles(outputs, targetDir)
+    return 0
+  }
+
+  console.log(outputs[0].content.trimEnd())
+  return 0
+}
+
+function runDumpSingle(parsed: ParsedDumpArgs): number {
+  const configFile = parsed.configFile
+  if (!configFile) {
+    throw new Error("Missing required config file path for dump command")
+  }
+
+  const restoreEnv = applyEnvVariables(parsed.env)
+
+  try {
+    const loadedConfig = loadConfigFile(configFile)
+    const configCount = Array.isArray(loadedConfig) ? loadedConfig.length : 1
+    const metadata: DumpMetadata = {
+      exportedAt: new Date().toISOString(),
+      bundler: parsed.bundler || "webpack",
+      environment: parsed.environment || "development",
+      configType: parsed.configType || "client",
+      configCount
+    }
+
+    if (parsed.saveDir) {
+      const outputs = buildSplitDumpOutputs(loadedConfig, {
+        bundler: metadata.bundler,
+        environment: metadata.environment,
+        outputs: [],
+        fallbackConfigType: metadata.configType,
+        parsed
+      })
+      FileWriter.writeMultipleFiles(outputs, path.resolve(parsed.saveDir))
       return 0
     }
 
-    if (!parsed.left || !parsed.right) {
-      throw new Error("Both --left and --right are required. Use --help for usage details.")
-    }
-
-    const leftConfig = loadConfigFile(parsed.left)
-    const rightConfig = loadConfigFile(parsed.right)
-
-    const normalizedLeft = maybeNormalizeConfig(leftConfig, parsed.normalizePaths)
-    const normalizedRight = maybeNormalizeConfig(rightConfig, parsed.normalizePaths)
-
-    const options: DiffOptions = {
-      includeUnchanged: parsed.includeUnchanged,
-      pluginAware: parsed.pluginAware,
-      matchRulesByTest: parsed.matchRulesByTest,
-      maxDepth: parsed.maxDepth,
-      ignoreKeys: parsed.ignoreKeys,
-      ignorePaths: parsed.ignorePaths,
-      pathSeparator: parsed.pathSeparator
-    }
-
-    const engine = new DiffEngine(options)
-    const result = engine.compare(normalizedLeft.normalizedConfig, normalizedRight.normalizedConfig, {
-      leftFile: parsed.left,
-      rightFile: parsed.right,
-      leftMetadata: normalizedLeft.metadata,
-      rightMetadata: normalizedRight.metadata
-    })
-
-    const formatter = new DiffFormatter()
-    const output = formatOutput(formatter, parsed.format, result)
+    const output = serializeDumpPayload(loadedConfig, metadata, parsed)
 
     if (parsed.output) {
-      fs.writeFileSync(path.resolve(parsed.output), `${output}\n`, "utf8")
+      FileWriter.writeSingleFile(path.resolve(parsed.output), `${output}\n`)
     } else {
       console.log(output)
     }
 
-    return result.summary.totalChanges === 0 ? 0 : 1
+    return 0
+  } finally {
+    restoreEnv()
+  }
+}
+
+function runDump(args: string[]): number {
+  const parsed = parseDumpArgs(args)
+
+  if (parsed.help) {
+    console.log(HELP_TEXT)
+    return 0
+  }
+
+  if (parsed.annotate && parsed.format !== "yaml") {
+    throw new Error("--annotate requires --format=yaml")
+  }
+
+  if (parsed.listBuilds || parsed.allBuilds || parsed.build) {
+    return runDumpFromBuildConfig(parsed)
+  }
+
+  return runDumpSingle(parsed)
+}
+
+function runDiff(args: string[]): number {
+  const parsed = parseDiffArgs(args)
+
+  if (parsed.help) {
+    console.log(HELP_TEXT)
+    return 0
+  }
+
+  if (!parsed.left || !parsed.right) {
+    throw new Error("Both --left and --right are required. Use --help for usage details.")
+  }
+
+  const leftConfig = loadConfigFile(parsed.left)
+  const rightConfig = loadConfigFile(parsed.right)
+
+  const normalizedLeft = maybeNormalizeConfig(leftConfig, parsed.normalizePaths)
+  const normalizedRight = maybeNormalizeConfig(rightConfig, parsed.normalizePaths)
+
+  const options: DiffOptions = {
+    includeUnchanged: parsed.includeUnchanged,
+    pluginAware: parsed.pluginAware,
+    matchRulesByTest: parsed.matchRulesByTest,
+    maxDepth: parsed.maxDepth,
+    ignoreKeys: parsed.ignoreKeys,
+    ignorePaths: parsed.ignorePaths,
+    pathSeparator: parsed.pathSeparator
+  }
+
+  const engine = new DiffEngine(options)
+  const result = engine.compare(normalizedLeft.normalizedConfig, normalizedRight.normalizedConfig, {
+    leftFile: parsed.left,
+    rightFile: parsed.right,
+    leftMetadata: normalizedLeft.metadata,
+    rightMetadata: normalizedRight.metadata
+  })
+
+  const formatter = new DiffFormatter()
+  const output = formatDiffOutput(formatter, parsed.format, result)
+
+  if (parsed.output) {
+    fs.writeFileSync(path.resolve(parsed.output), `${output}\n`, "utf8")
+  } else {
+    console.log(output)
+  }
+
+  return result.summary.totalChanges === 0 ? 0 : 1
+}
+
+export function run(args: string[]): number {
+  try {
+    const [command, ...rest] = args
+
+    if (!command || command.startsWith("-")) {
+      return runDiff(args)
+    }
+
+    if (command === "diff") {
+      return runDiff(rest)
+    }
+
+    if (command === "dump") {
+      return runDump(rest)
+    }
+
+    throw new Error(`Unknown command: ${command}. Use --help for usage details.`)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error(message)

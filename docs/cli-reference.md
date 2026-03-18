@@ -3,10 +3,17 @@
 ## Usage
 
 ```
+pack-config-diff diff --left=<file> --right=<file> [options]
 pack-config-diff --left=<file> --right=<file> [options]
+pack-config-diff dump <config-file> [options]
+pack-config-diff dump --build=<name> [options]
+pack-config-diff dump --all-builds [options]
+pack-config-diff dump --list-builds [options]
 ```
 
-## Required options
+`diff` is the default command when the first argument is a flag (for example, `--left=...`).
+
+## `diff` required options
 
 ### `--left=<file>`
 
@@ -18,7 +25,7 @@ Path to the second config file (the "after" or "target").
 
 Both accept `.js`, `.ts`, `.json`, `.yaml`, or `.yml` files. See [Input Formats](./input-formats.md).
 
-## Output options
+## `diff` output options
 
 ### `--format=<format>`
 
@@ -42,7 +49,7 @@ Write output to a file instead of stdout.
 pack-config-diff --left=a.json --right=b.json --format=markdown --output=diff-report.md
 ```
 
-## Comparison options
+## `diff` comparison options
 
 ### `--plugin-aware`
 
@@ -107,9 +114,79 @@ pack-config-diff --left=a.json --right=b.json --path-separator=/
 
 Show help text and exit.
 
+## `dump` options
+
+### `dump <config-file>`
+
+Path to the config file to load and serialize. Accepts `.js`, `.ts`, `.json`, `.yaml`, `.yml`.
+
+### `--format=<format>`
+
+Output format. Default: `yaml`.
+
+| Format | Description |
+|--------|-------------|
+| `yaml` | Human-readable YAML with metadata header |
+| `json` | JSON payload `{ metadata, config }` with special-type placeholders |
+| `inspect` | Node.js `util.inspect` output with metadata and config sections |
+
+### `--output=<file>`
+
+Write dump output to a file instead of stdout.
+
+### `--save-dir=<dir>`
+
+Write split dump outputs to a directory.
+
+### `--annotate`
+
+Add inline docs for known webpack keys (YAML only).
+
+### `--bundler=<name>`
+
+Set metadata bundler label. Default: `webpack`.
+
+### `--environment=<name>`
+
+Set metadata environment label. Default: `development`.
+
+### `--config-type=<type>`
+
+Set metadata config type label. Default: `client`.
+
+### `--app-root=<path>`
+
+Root directory used to relativize absolute paths in serialized output. Default: current working directory.
+
+### `--env=<KEY=VALUE>`
+
+Set an environment variable before loading the config. Repeatable.
+
+### `--clean`
+
+Strip noisy plugin internals and compact function sources before serializing.
+
+## Build matrix options (`dump`)
+
+### `--config-file=<file>`
+
+Path to build matrix YAML file. Default: `config/pack-config-diff-builds.yml`.
+
+### `--build=<name>`
+
+Dump a specific named build from the build matrix.
+
+### `--all-builds`
+
+Dump all builds from the matrix. Writes files to `--save-dir` (or default `pack-config-diff-exports`).
+
+### `--list-builds`
+
+List available builds in the matrix and exit.
+
 ## Exit codes
 
 | Code | Meaning |
 |------|---------|
-| `0` | No differences found |
-| `1` | Differences found, or an error occurred |
+| `0` | Success (`diff`: no changes found, `dump`: export succeeded) |
+| `1` | Differences found (`diff`) or an error occurred |
