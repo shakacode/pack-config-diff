@@ -35,6 +35,36 @@ const formatter = new DiffFormatter()
 console.log(formatter.formatDetailed(result))
 ```
 
+## Dump helpers
+
+```javascript
+const {
+  loadConfigFile,
+  cleanConfig,
+  serializeConfig
+} = require("pack-config-diff")
+
+const rawConfig = loadConfigFile("webpack.config.js")
+const cleaned = cleanConfig(rawConfig, process.cwd())
+const yamlOutput = serializeConfig(
+  cleaned,
+  {
+    exportedAt: new Date().toISOString(),
+    bundler: "webpack",
+    environment: "development",
+    configType: "client",
+    configCount: Array.isArray(cleaned) ? cleaned.length : 1
+  },
+  {
+    format: "yaml",
+    annotate: true,
+    appRoot: process.cwd()
+  }
+)
+
+console.log(yamlOutput)
+```
+
 ## `DiffEngine`
 
 ### Constructor options
@@ -131,3 +161,10 @@ const { normalized } = normalizer.normalize(config)
 
 console.log(normalized.output.path) // "./public/packs"
 ```
+
+## Additional exports
+
+`pack-config-diff` also exports:
+- `YamlSerializer` for direct YAML serialization with optional inline docs.
+- `FileWriter` for writing single/multi-file dump outputs.
+- `BuildConfigFileLoader` for loading `config/pack-config-diff-builds.yml` style build matrices.
