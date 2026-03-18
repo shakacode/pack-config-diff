@@ -1,8 +1,21 @@
+import { isAbsolute, relative } from "path"
+
 function makePathRelative(str: string, rootPath: string): string {
-  if (typeof str === "string" && str.startsWith(rootPath)) {
-    return `./${str.substring(rootPath.length + 1)}`
+  if (!isAbsolute(str) || !isAbsolute(rootPath)) {
+    return str
   }
-  return str
+
+  const rel = relative(rootPath, str)
+
+  if (rel === "") {
+    return "."
+  }
+
+  if (rel.startsWith("..") || isAbsolute(rel)) {
+    return str
+  }
+
+  return `./${rel}`
 }
 
 function getConstructorName(value: unknown): string | undefined {
@@ -15,8 +28,14 @@ function getConstructorName(value: unknown): string | undefined {
 }
 
 function cleanValue(value: unknown, rootPath: string, key?: string, parent?: unknown): unknown {
-  if (getConstructorName(parent) === "EnvironmentPlugin" && (key === "keys" || key === "defaultValues")) {
+  const parentConstructor = getConstructorName(parent)
+
+  if (parentConstructor === "EnvironmentPlugin" && (key === "keys" || key === "defaultValues")) {
     return undefined
+  }
+
+  if (parentConstructor === "DefinePlugin" && key === "definitions") {
+    return "[FILTERED]"
   }
 
   if (typeof value === "function") {
