@@ -32,29 +32,56 @@ The tool takes two config files (`--left` and `--right`) and shows what's differ
 pack-config-diff --left=webpack.dev.js --right=webpack.prod.js
 ```
 
-```
-pack-config-diff — Semantic config diff
-Comparing: webpack.dev.js ↔ webpack.prod.js
+```text
+================================================================================
+Webpack/Rspack Configuration Comparison
+================================================================================
+
+Comparing: webpack.dev.js
+      vs:  webpack.prod.js
+
 Found 4 difference(s): 0 added, 0 removed, 4 changed
 
+================================================================================
+
 1. [~] mode
-   Description: Sets webpack optimization defaults for development or production.
-   dev: "development"
-   prod: "production"
-   Impact: Switching mode from development to production changes optimization defaults
-           and debugging behavior.
-   Docs: https://webpack.js.org/configuration/mode/
+
+   What it does:
+   Defines the environment mode (development, production, or none). Controls built-in optimizations and defaults.
+
+   Affects: Minification, tree-shaking, source maps, and performance optimizations
+
+   Values:
+     dev:  "development"
+     prod: "production"
+
+   Impact: Enabling production optimizations (minification, tree-shaking)
+
+   Documentation: https://webpack.js.org/configuration/mode/
 
 2. [~] output.filename
-   Description: Specifies naming template for entry chunk files.
-   dev: "bundle.js"
-   prod: "bundle-[contenthash].js"
-   Impact: Filename now includes [contenthash], improving long-term browser caching.
-   Docs: https://webpack.js.org/configuration/output/#outputfilename
+
+   What it does:
+   Filename template for entry chunks. Can include [name], [hash], [contenthash].
+
+   Affects: Output filenames and cache busting strategy
+
+   Values:
+     dev:  "bundle.js"
+     prod: "bundle-[contenthash].js"
+
+   Impact: Cache busting enabled - better long-term caching
+
+   Documentation: https://webpack.js.org/configuration/output/#outputfilename
 
 ...
 
-Legend: [+] added, [-] removed, [~] changed
+================================================================================
+
+Legend:
+  [+] = Added in prod
+  [-] = Removed from prod
+  [~] = Changed between configs
 ```
 
 ### Export a live config snapshot (`dump`)

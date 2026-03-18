@@ -10,35 +10,71 @@ Human-readable output with semantic descriptions, impact notes, and links to web
 pack-config-diff --left=dev.json --right=prod.json
 ```
 
-```
-pack-config-diff — Semantic config diff
-Comparing: dev.json ↔ prod.json
+```text
+================================================================================
+Webpack/Rspack Configuration Comparison
+================================================================================
+
+Comparing: dev.json
+      vs:  prod.json
+
 Found 3 difference(s): 1 added, 0 removed, 2 changed
 
+================================================================================
+
 1. [~] mode
-   Description: Sets webpack optimization defaults for development or production.
-   Affects: Minification, tree-shaking, and debug ergonomics
-   Default: production
-   dev: "development"
-   prod: "production"
-   Impact: Switching mode from development to production changes optimization defaults and debugging behavior.
-   Docs: https://webpack.js.org/configuration/mode/
 
-2. [~] optimization.minimize
-   Description: Enables or disables code minimization.
+   What it does:
+   Defines the environment mode (development, production, or none). Controls built-in optimizations and defaults.
+
+   Affects: Minification, tree-shaking, source maps, and performance optimizations
+
+   Values:
+     dev:  "development"
+     prod: "production"
+
+   Impact: Enabling production optimizations (minification, tree-shaking)
+
+   Documentation: https://webpack.js.org/configuration/mode/
+
+2. [+] target
+
+   What it does:
+   Deployment target environment: 'web', 'node', 'electron-main', etc.
+
+   Affects: Which environment-specific features are enabled
+
+   Default: 'web'
+
+   Values:
+     dev:  <not set>
+     prod: "web"
+
+   Documentation: https://webpack.js.org/configuration/target/
+
+3. [~] optimization.minimize
+
+   What it does:
+   Enable/disable minification of JavaScript bundles.
+
    Affects: Bundle size and build time
-   Default: true in production
-   dev: false
-   prod: true
-   Impact: Minification is now enabled, usually reducing bundle size at the cost of build time.
-   Docs: https://webpack.js.org/configuration/optimization/#optimizationminimize
 
-3. [+] target
-   Description: Defines target runtime environment for output bundles.
-   prod: "web"
-   Docs: https://webpack.js.org/configuration/target/
+   Default: true in production, false in development
 
-Legend: [+] added, [-] removed, [~] changed
+   Values:
+     dev:  false
+     prod: true
+
+   Impact: Code will be minified - smaller bundles but slower builds
+
+   Documentation: https://webpack.js.org/configuration/optimization/#optimizationminimize
+
+================================================================================
+
+Legend:
+  [+] = Added in prod
+  [-] = Removed from prod
+  [~] = Changed between configs
 ```
 
 ## `summary`
@@ -49,13 +85,13 @@ A single-line count of changes. Best for CI scripts that just need a pass/fail.
 pack-config-diff --left=dev.json --right=prod.json --format=summary
 ```
 
-```
+```text
 3 changes: +1 -0 ~2
 ```
 
 When configs are identical:
 
-```
+```text
 ✅ No differences found
 ```
 
@@ -107,7 +143,7 @@ pack-config-diff --left=dev.json --right=prod.json --format=json
 
 ## `yaml`
 
-Same structure as `json` but in YAML. Useful if your tooling prefers YAML:
+The YAML formatter restructures the data into `metadata`, `summary`, and `changes` (grouped by operation type: added, removed, changed, unchanged). This differs from the JSON format which uses a flat `entries` array:
 
 ```bash
 pack-config-diff --left=dev.json --right=prod.json --format=yaml

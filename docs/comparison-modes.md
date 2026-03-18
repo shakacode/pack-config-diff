@@ -19,7 +19,7 @@ module.exports = { plugins: [new MiniCssExtractPlugin({ filename: "style.css" })
 ```
 
 Without `--plugin-aware`:
-```
+```text
 1 changes: +0 -0 ~1
 ```
 
@@ -36,7 +36,7 @@ With `--plugin-aware`, the tool compares plugin instances by:
 pack-config-diff --left=left.js --right=right.js --plugin-aware
 ```
 
-```
+```text
 ✅ No differences found
 ```
 
@@ -66,11 +66,22 @@ module.exports = {
 pack-config-diff --left=left.js --right=right.js --plugin-aware
 ```
 
+```text
+1. [~] plugins.[0]
+
+   What it does:
+   Array of plugins to extend webpack functionality (HTML generation, env vars, compression, etc.).
+
+   Affects: Build process, output, and optimizations
+
+   Values:
+     left:  [Instance: MiniCssExtractPlugin]
+     right: [Instance: MiniCssExtractPlugin]
+
+   Documentation: https://webpack.js.org/configuration/plugins/
 ```
-1. [~] plugins.[0].filename
-   left: "[name].css"
-   right: "[name]-[contenthash].css"
-```
+
+> **Note:** Plugin-aware mode determines equality by comparing all instance properties, but when plugins differ the change is reported at the instance level (e.g., `plugins.[0]`), not at individual property paths.
 
 ## Match rules by test
 
@@ -80,8 +91,8 @@ pack-config-diff --left=left.js --right=right.js --plugin-aware
 
 `module.rules` is an array, so by default rules are compared by index position. If you reorder rules without changing their content, you get false positives:
 
+**left.json:**
 ```json
-// left.json
 {
   "module": {
     "rules": [
@@ -92,8 +103,8 @@ pack-config-diff --left=left.js --right=right.js --plugin-aware
 }
 ```
 
+**right.json** (same rules, swapped order):
 ```json
-// right.json (same rules, swapped order)
 {
   "module": {
     "rules": [
@@ -105,7 +116,7 @@ pack-config-diff --left=left.js --right=right.js --plugin-aware
 ```
 
 Without `--match-rules-by-test`:
-```
+```text
 4 changes: +0 -0 ~4
 ```
 
@@ -119,7 +130,7 @@ With `--match-rules-by-test`, rules are matched by their `test` pattern instead 
 pack-config-diff --left=left.json --right=right.json --match-rules-by-test
 ```
 
-```
+```text
 ✅ No differences found
 ```
 
@@ -143,16 +154,18 @@ pack-config-diff --left=left.json --right=right.json --match-rules-by-test
 
 Webpack configs often contain absolute filesystem paths (e.g., `output.path`). When comparing configs generated on different machines, these paths differ even though the project structure is identical:
 
+**left.json** (Alice's machine):
 ```json
-// left.json (Alice's machine)
 { "output": { "path": "/Users/alice/project/public/packs" } }
+```
 
-// right.json (Bob's machine)
+**right.json** (Bob's machine):
+```json
 { "output": { "path": "/home/bob/project/public/packs" } }
 ```
 
 Without normalization:
-```
+```text
 1 changes: +0 -0 ~1
 ```
 
@@ -164,7 +177,7 @@ Path normalization automatically detects absolute paths in the config, finds the
 pack-config-diff --left=left.json --right=right.json
 ```
 
-```
+```text
 ✅ No differences found
 ```
 
@@ -178,7 +191,7 @@ If you specifically care about absolute path differences:
 pack-config-diff --left=left.json --right=right.json --no-normalize-paths
 ```
 
-```
+```text
 1 changes: +0 -0 ~1
 
 1. [~] output.path
