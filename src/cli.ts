@@ -147,6 +147,24 @@ function parseOptionToken(arg: string): OptionToken {
   }
 }
 
+function readOptionValue(
+  optionName: string,
+  inlineValue: string | undefined,
+  args: string[],
+  index: number
+): { value: string | undefined; consumesNext: boolean } {
+  if (inlineValue !== undefined) {
+    return { value: inlineValue, consumesNext: false }
+  }
+
+  const next = index + 1 < args.length ? args[index + 1] : undefined
+  if (next?.startsWith("-")) {
+    return { value: undefined, consumesNext: false }
+  }
+
+  return { value: next, consumesNext: next !== undefined }
+}
+
 function parseBundler(value: string): "webpack" | "rspack" {
   if (value !== "webpack" && value !== "rspack") {
     throw new Error(`Invalid bundler: ${value}. Expected 'webpack' or 'rspack'.`)
@@ -172,8 +190,7 @@ function parseDiffArgs(args: string[]): ParsedDiffArgs {
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
     const { name, inlineValue } = parseOptionToken(arg)
-    const nextValue = inlineValue ?? (index + 1 < args.length ? args[index + 1] : undefined)
-    const consumesNext = inlineValue === undefined
+    const { value: nextValue, consumesNext } = readOptionValue(name, inlineValue, args, index)
 
     switch (name) {
       case "--left":
@@ -304,8 +321,7 @@ function parseDumpArgs(args: string[]): ParsedDumpArgs {
     }
 
     const { name, inlineValue } = parseOptionToken(arg)
-    const nextValue = inlineValue ?? (index + 1 < args.length ? args[index + 1] : undefined)
-    const consumesNext = inlineValue === undefined
+    const { value: nextValue, consumesNext } = readOptionValue(name, inlineValue, args, index)
 
     switch (name) {
       case "--format": {
@@ -431,6 +447,10 @@ function parseDumpArgs(args: string[]): ParsedDumpArgs {
 
   if (parsed.output && parsed.allBuilds) {
     throw new Error("--output cannot be used with --all-builds. Use --save-dir instead.")
+  }
+
+  if (parsed.output && parsed.saveDir) {
+    throw new Error("--output and --save-dir are mutually exclusive")
   }
 
   if (parsed.listBuilds && (parsed.build || parsed.allBuilds || parsed.configFile)) {
@@ -659,6 +679,9 @@ function runDumpFromBuildConfig(parsed: ParsedDumpArgs): number {
   const shouldWriteFiles = parsed.allBuilds || Boolean(parsed.saveDir) || outputs.length > 1
   if (shouldWriteFiles) {
     const targetDir = path.resolve(parsed.saveDir || DEFAULT_DUMP_SAVE_DIR)
+    if (!parsed.saveDir) {
+      console.error(`Writing ${outputs.length} files to ${targetDir}/ (use --save-dir to customize)`)
+    }
     FileWriter.writeMultipleFiles(outputs, targetDir)
     return 0
   }
@@ -676,7 +699,7 @@ function runDumpSingle(parsed: ParsedDumpArgs): number {
   const restoreEnv = applyEnvVariables(parsed.env)
 
   try {
-    const environment = parsed.environment || "development"
+    const environment = parsed.environment || "production"
     const loadedConfig = loadConfigFile(configFile, environment)
     const configCount = Array.isArray(loadedConfig) ? loadedConfig.length : 1
     const metadata: DumpMetadata = {
