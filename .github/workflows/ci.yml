@@ -27,6 +27,19 @@ jobs:
           path: dist/
           retention-days: 1
 
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx eslint .
+      - run: npx prettier --check .
+
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
