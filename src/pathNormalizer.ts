@@ -1,46 +1,46 @@
-import os from "os"
-import path from "path"
+import os from "os";
+import path from "path";
 
-import type { NormalizedConfig } from "./types"
+import type { NormalizedConfig } from "./types";
 
-type PathFlavor = "posix" | "win32"
+type PathFlavor = "posix" | "win32";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== "object") {
-    return false
+    return false;
   }
 
-  const prototype = Object.getPrototypeOf(value)
-  return prototype === Object.prototype || prototype === null
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
 }
 
 function isClassInstance(value: unknown): boolean {
   if (value === null || typeof value !== "object") {
-    return false
+    return false;
   }
 
   if (Array.isArray(value) || value instanceof Date || value instanceof RegExp) {
-    return false
+    return false;
   }
 
-  const prototype = Object.getPrototypeOf(value)
-  return prototype !== Object.prototype && prototype !== null
+  const prototype = Object.getPrototypeOf(value);
+  return prototype !== Object.prototype && prototype !== null;
 }
 
 function detectPathFlavor(input: string): PathFlavor | undefined {
   if (/^[A-Za-z]:[\\/]/.test(input) || /^\\\\/.test(input)) {
-    return "win32"
+    return "win32";
   }
 
   if (input.startsWith("/")) {
-    return "posix"
+    return "posix";
   }
 
   if (input.startsWith("\\")) {
-    return "win32"
+    return "win32";
   }
 
-  return undefined
+  return undefined;
 }
 
 function isRelativePath(input: string): boolean {
@@ -49,281 +49,282 @@ function isRelativePath(input: string): boolean {
     input.startsWith(".\\") ||
     input.startsWith("../") ||
     input.startsWith("..\\")
-  )
+  );
 }
 
 function expandHomePath(input: string): string {
   if (input !== "~" && !input.startsWith("~/") && !input.startsWith("~\\")) {
-    return input
+    return input;
   }
 
-  const home = os.homedir()
+  const home = os.homedir();
   if (input === "~") {
-    return home
+    return home;
   }
 
-  return path.join(home, input.slice(2))
+  return path.join(home, input.slice(2));
 }
 
 function getPathModule(flavor: PathFlavor): typeof path.posix | typeof path.win32 {
-  return flavor === "win32" ? path.win32 : path.posix
+  return flavor === "win32" ? path.win32 : path.posix;
 }
 
 function ensureRelativePrefix(input: string, flavor: PathFlavor): string {
-  const separator = flavor === "win32" ? "\\" : "/"
+  const separator = flavor === "win32" ? "\\" : "/";
   if (input === "" || input === ".") {
-    return `.${separator === "\\" ? "\\" : "/"}`
+    return `.${separator === "\\" ? "\\" : "/"}`;
   }
 
   if (input.startsWith("..")) {
-    return input
+    return input;
   }
 
   if (input.startsWith(".")) {
-    return input
+    return input;
   }
 
-  return `.${separator}${input}`
+  return `.${separator}${input}`;
 }
 
 function isWithinBase(
   absolutePath: string,
   basePath: string,
-  pathModule: typeof path.posix | typeof path.win32
+  pathModule: typeof path.posix | typeof path.win32,
 ): boolean {
-  const relative = pathModule.relative(basePath, absolutePath)
+  const relative = pathModule.relative(basePath, absolutePath);
   if (relative === "") {
-    return true
+    return true;
   }
 
-  return !relative.startsWith("..") && !pathModule.isAbsolute(relative)
+  return !relative.startsWith("..") && !pathModule.isAbsolute(relative);
 }
 
 function splitSegments(input: string, flavor: PathFlavor): { root: string; segments: string[] } {
-  const pathModule = getPathModule(flavor)
-  const normalized = pathModule.normalize(input)
-  const parsed = pathModule.parse(normalized)
-  const rest = normalized.slice(parsed.root.length)
-  const segments = rest.split(/[\\/]+/).filter(Boolean)
+  const pathModule = getPathModule(flavor);
+  const normalized = pathModule.normalize(input);
+  const parsed = pathModule.parse(normalized);
+  const rest = normalized.slice(parsed.root.length);
+  const segments = rest.split(/[\\/]+/).filter(Boolean);
 
-  return { root: parsed.root, segments }
+  return { root: parsed.root, segments };
 }
 
 function joinSegments(root: string, segments: string[], flavor: PathFlavor): string {
-  const pathModule = getPathModule(flavor)
+  const pathModule = getPathModule(flavor);
   if (segments.length === 0) {
-    return root
+    return root;
   }
 
-  return pathModule.join(root, ...segments)
+  return pathModule.join(root, ...segments);
 }
 
 function toDirectoryCandidate(absolutePath: string, flavor: PathFlavor): string {
-  const pathModule = getPathModule(flavor)
-  const normalized = pathModule.normalize(absolutePath)
-  const ext = pathModule.extname(normalized)
+  const pathModule = getPathModule(flavor);
+  const normalized = pathModule.normalize(absolutePath);
+  const ext = pathModule.extname(normalized);
 
   if (ext.length > 0) {
-    return pathModule.dirname(normalized)
+    return pathModule.dirname(normalized);
   }
 
-  return normalized
+  return normalized;
 }
 
 export class PathNormalizer {
-  private readonly basePath: string
-  private readonly baseFlavor: PathFlavor
-  private readonly basePathModule: typeof path.posix | typeof path.win32
+  private readonly basePath: string;
+  private readonly baseFlavor: PathFlavor;
+  private readonly basePathModule: typeof path.posix | typeof path.win32;
 
   public constructor(basePath: string = process.cwd()) {
-    const expandedBasePath = expandHomePath(basePath)
-    const baseFlavor = detectPathFlavor(expandedBasePath) ?? (path.sep === "\\" ? "win32" : "posix")
+    const expandedBasePath = expandHomePath(basePath);
+    const baseFlavor =
+      detectPathFlavor(expandedBasePath) ?? (path.sep === "\\" ? "win32" : "posix");
 
-    this.baseFlavor = baseFlavor
-    this.basePathModule = getPathModule(baseFlavor)
-    this.basePath = this.basePathModule.resolve(expandedBasePath)
+    this.baseFlavor = baseFlavor;
+    this.basePathModule = getPathModule(baseFlavor);
+    this.basePath = this.basePathModule.resolve(expandedBasePath);
   }
 
   public normalize(config: unknown): NormalizedConfig {
     return {
       original: config,
       normalized: this.normalizeValue(config),
-      basePath: this.basePath
-    }
+      basePath: this.basePath,
+    };
   }
 
   public static detectBasePath(config: unknown): string | undefined {
     const absolutePathsByFlavor: Record<PathFlavor, string[]> = {
       posix: [],
-      win32: []
-    }
+      win32: [],
+    };
 
     const walk = (value: unknown): void => {
       if (typeof value === "string") {
         if (!PathNormalizer.looksLikePath(value)) {
-          return
+          return;
         }
 
-        const expanded = expandHomePath(value)
-        const flavor = detectPathFlavor(expanded)
+        const expanded = expandHomePath(value);
+        const flavor = detectPathFlavor(expanded);
         if (!flavor) {
-          return
+          return;
         }
 
-        const pathModule = getPathModule(flavor)
+        const pathModule = getPathModule(flavor);
         if (pathModule.isAbsolute(expanded)) {
-          absolutePathsByFlavor[flavor].push(toDirectoryCandidate(expanded, flavor))
+          absolutePathsByFlavor[flavor].push(toDirectoryCandidate(expanded, flavor));
         }
 
-        return
+        return;
       }
 
       if (Array.isArray(value)) {
         for (const item of value) {
-          walk(item)
+          walk(item);
         }
-        return
+        return;
       }
 
       if (isPlainObject(value)) {
         for (const nestedValue of Object.values(value)) {
-          walk(nestedValue)
+          walk(nestedValue);
         }
       }
-    }
+    };
 
-    walk(config)
+    walk(config);
 
     const flavor: PathFlavor | undefined = (() => {
       if (absolutePathsByFlavor.posix.length === 0 && absolutePathsByFlavor.win32.length === 0) {
-        return undefined
+        return undefined;
       }
 
       if (absolutePathsByFlavor.posix.length >= absolutePathsByFlavor.win32.length) {
-        return "posix"
+        return "posix";
       }
 
-      return "win32"
-    })()
+      return "win32";
+    })();
 
     if (!flavor) {
-      return undefined
+      return undefined;
     }
 
-    const candidates = absolutePathsByFlavor[flavor]
+    const candidates = absolutePathsByFlavor[flavor];
     if (candidates.length === 0) {
-      return undefined
+      return undefined;
     }
 
     if (candidates.length === 1) {
-      return candidates[0]
+      return candidates[0];
     }
 
-    const split = candidates.map((candidate) => splitSegments(candidate, flavor))
-    const first = split[0]
+    const split = candidates.map((candidate) => splitSegments(candidate, flavor));
+    const first = split[0];
 
-    const root = first.root
+    const root = first.root;
     for (const item of split) {
       if (item.root.toLowerCase() !== root.toLowerCase()) {
-        return undefined
+        return undefined;
       }
     }
 
-    const commonSegments: string[] = []
-    const minLength = Math.min(...split.map((item) => item.segments.length))
+    const commonSegments: string[] = [];
+    const minLength = Math.min(...split.map((item) => item.segments.length));
     for (let index = 0; index < minLength; index += 1) {
-      const segment = split[0].segments[index]
+      const segment = split[0].segments[index];
       const isShared = split.every((item) => {
         if (flavor === "win32") {
-          return item.segments[index].toLowerCase() === segment.toLowerCase()
+          return item.segments[index].toLowerCase() === segment.toLowerCase();
         }
 
-        return item.segments[index] === segment
-      })
+        return item.segments[index] === segment;
+      });
 
       if (!isShared) {
-        break
+        break;
       }
 
-      commonSegments.push(segment)
+      commonSegments.push(segment);
     }
 
-    return joinSegments(root, commonSegments, flavor)
+    return joinSegments(root, commonSegments, flavor);
   }
 
   private normalizeValue(value: unknown): unknown {
     if (typeof value === "string") {
-      return this.normalizeString(value)
+      return this.normalizeString(value);
     }
 
     if (Array.isArray(value)) {
-      return value.map((item) => this.normalizeValue(item))
+      return value.map((item) => this.normalizeValue(item));
     }
 
     if (isClassInstance(value)) {
-      return value
+      return value;
     }
 
     if (isPlainObject(value)) {
-      const normalizedObject: Record<string, unknown> = {}
+      const normalizedObject: Record<string, unknown> = {};
       for (const [key, nestedValue] of Object.entries(value)) {
-        normalizedObject[key] = this.normalizeValue(nestedValue)
+        normalizedObject[key] = this.normalizeValue(nestedValue);
       }
 
-      return normalizedObject
+      return normalizedObject;
     }
 
-    return value
+    return value;
   }
 
   private normalizeString(input: string): string {
     if (!PathNormalizer.looksLikePath(input)) {
-      return input
+      return input;
     }
 
-    const expanded = expandHomePath(input)
-    const flavor = detectPathFlavor(expanded)
+    const expanded = expandHomePath(input);
+    const flavor = detectPathFlavor(expanded);
 
     if (flavor) {
       if (flavor !== this.baseFlavor) {
-        return expanded
+        return expanded;
       }
 
-      const pathModule = getPathModule(flavor)
-      const normalizedAbsolutePath = pathModule.normalize(expanded)
-      const normalizedBasePath = pathModule.normalize(this.basePath)
+      const pathModule = getPathModule(flavor);
+      const normalizedAbsolutePath = pathModule.normalize(expanded);
+      const normalizedBasePath = pathModule.normalize(this.basePath);
 
       if (!pathModule.isAbsolute(normalizedAbsolutePath)) {
-        return expanded
+        return expanded;
       }
 
       if (!isWithinBase(normalizedAbsolutePath, normalizedBasePath, pathModule)) {
-        return normalizedAbsolutePath
+        return normalizedAbsolutePath;
       }
 
-      const relative = pathModule.relative(normalizedBasePath, normalizedAbsolutePath)
-      return ensureRelativePrefix(relative, flavor)
+      const relative = pathModule.relative(normalizedBasePath, normalizedAbsolutePath);
+      return ensureRelativePrefix(relative, flavor);
     }
 
     if (!isRelativePath(expanded)) {
-      return expanded
+      return expanded;
     }
 
-    const normalizedRelativePath = this.basePathModule.normalize(expanded)
-    return ensureRelativePrefix(normalizedRelativePath, this.baseFlavor)
+    const normalizedRelativePath = this.basePathModule.normalize(expanded);
+    return ensureRelativePrefix(normalizedRelativePath, this.baseFlavor);
   }
 
   private static looksLikePath(input: string): boolean {
     if (input.length < 2 && input !== "~") {
-      return false
+      return false;
     }
 
     if (/^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(input)) {
-      return false
+      return false;
     }
 
     if (/^@[^/\\]+[/\\].+/.test(input)) {
-      return false
+      return false;
     }
 
     return (
@@ -334,6 +335,6 @@ export class PathNormalizer {
       input.startsWith("~/") ||
       input.startsWith("~\\") ||
       /^[A-Za-z]:[\\/]/.test(input)
-    )
+    );
   }
 }

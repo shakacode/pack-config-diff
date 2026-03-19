@@ -1,228 +1,222 @@
-const { DiffEngine } = require("../src/diffEngine")
+const { DiffEngine } = require("../src/diffEngine");
 
 describe("DiffEngine", () => {
   describe("primitive values", () => {
     test("detects no changes when values are identical", () => {
-      const engine = new DiffEngine()
-      const result = engine.compare({ a: 1, b: "test" }, { a: 1, b: "test" })
+      const engine = new DiffEngine();
+      const result = engine.compare({ a: 1, b: "test" }, { a: 1, b: "test" });
 
-      expect(result.summary.totalChanges).toBe(0)
-      expect(result.summary.added).toBe(0)
-      expect(result.summary.removed).toBe(0)
-      expect(result.summary.changed).toBe(0)
-    })
+      expect(result.summary.totalChanges).toBe(0);
+      expect(result.summary.added).toBe(0);
+      expect(result.summary.removed).toBe(0);
+      expect(result.summary.changed).toBe(0);
+    });
 
     test("detects changed values", () => {
-      const engine = new DiffEngine()
-      const result = engine.compare({ a: 1 }, { a: 2 })
+      const engine = new DiffEngine();
+      const result = engine.compare({ a: 1 }, { a: 2 });
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.summary.changed).toBe(1)
-      expect(result.entries[0].operation).toBe("changed")
-      expect(result.entries[0].path.humanPath).toBe("a")
-      expect(result.entries[0].oldValue).toBe(1)
-      expect(result.entries[0].newValue).toBe(2)
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.summary.changed).toBe(1);
+      expect(result.entries[0].operation).toBe("changed");
+      expect(result.entries[0].path.humanPath).toBe("a");
+      expect(result.entries[0].oldValue).toBe(1);
+      expect(result.entries[0].newValue).toBe(2);
+    });
 
     test("detects added values", () => {
-      const engine = new DiffEngine()
-      const result = engine.compare({ a: 1 }, { a: 1, b: 2 })
+      const engine = new DiffEngine();
+      const result = engine.compare({ a: 1 }, { a: 1, b: 2 });
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.summary.added).toBe(1)
-      expect(result.entries[0].operation).toBe("added")
-      expect(result.entries[0].path.humanPath).toBe("b")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.summary.added).toBe(1);
+      expect(result.entries[0].operation).toBe("added");
+      expect(result.entries[0].path.humanPath).toBe("b");
+    });
 
     test("detects removed values", () => {
-      const engine = new DiffEngine()
-      const result = engine.compare({ a: 1, b: 2 }, { a: 1 })
+      const engine = new DiffEngine();
+      const result = engine.compare({ a: 1, b: 2 }, { a: 1 });
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.summary.removed).toBe(1)
-      expect(result.entries[0].operation).toBe("removed")
-      expect(result.entries[0].path.humanPath).toBe("b")
-    })
-  })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.summary.removed).toBe(1);
+      expect(result.entries[0].operation).toBe("removed");
+      expect(result.entries[0].path.humanPath).toBe("b");
+    });
+  });
 
   describe("nested objects", () => {
     test("detects changes in nested objects", () => {
-      const engine = new DiffEngine()
-      const left = { outer: { inner: { value: 1 } } }
-      const right = { outer: { inner: { value: 2 } } }
-      const result = engine.compare(left, right)
+      const engine = new DiffEngine();
+      const left = { outer: { inner: { value: 1 } } };
+      const right = { outer: { inner: { value: 2 } } };
+      const result = engine.compare(left, right);
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.summary.changed).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("outer.inner.value")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.summary.changed).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("outer.inner.value");
+    });
 
     test("detects added nested properties", () => {
-      const engine = new DiffEngine()
-      const left = { outer: { inner: {} } }
-      const right = { outer: { inner: { newProp: "value" } } }
-      const result = engine.compare(left, right)
+      const engine = new DiffEngine();
+      const left = { outer: { inner: {} } };
+      const right = { outer: { inner: { newProp: "value" } } };
+      const result = engine.compare(left, right);
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.summary.added).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("outer.inner.newProp")
-    })
-  })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.summary.added).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("outer.inner.newProp");
+    });
+  });
 
   describe("arrays", () => {
     test("detects changes in array elements", () => {
-      const engine = new DiffEngine()
-      const result = engine.compare({ arr: [1, 2, 3] }, { arr: [1, 5, 3] })
+      const engine = new DiffEngine();
+      const result = engine.compare({ arr: [1, 2, 3] }, { arr: [1, 5, 3] });
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.summary.changed).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("arr.[1]")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.summary.changed).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("arr.[1]");
+    });
 
     test("detects added array elements", () => {
-      const engine = new DiffEngine()
-      const result = engine.compare({ arr: [1, 2] }, { arr: [1, 2, 3] })
+      const engine = new DiffEngine();
+      const result = engine.compare({ arr: [1, 2] }, { arr: [1, 2, 3] });
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.summary.added).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("arr.[2]")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.summary.added).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("arr.[2]");
+    });
 
     test("detects removed array elements", () => {
-      const engine = new DiffEngine()
-      const result = engine.compare({ arr: [1, 2, 3] }, { arr: [1, 2] })
+      const engine = new DiffEngine();
+      const result = engine.compare({ arr: [1, 2, 3] }, { arr: [1, 2] });
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.summary.removed).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("arr.[2]")
-    })
-  })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.summary.removed).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("arr.[2]");
+    });
+  });
 
   describe("options", () => {
     test("respects includeUnchanged option", () => {
-      const engine = new DiffEngine({ includeUnchanged: true })
-      const result = engine.compare({ a: 1, b: 2 }, { a: 1, b: 3 })
+      const engine = new DiffEngine({ includeUnchanged: true });
+      const result = engine.compare({ a: 1, b: 2 }, { a: 1, b: 3 });
 
-      expect(result.summary.unchanged).toBe(1)
-      expect(result.entries.some((e) => e.operation === "unchanged")).toBe(true)
-    })
+      expect(result.summary.unchanged).toBe(1);
+      expect(result.entries.some((e) => e.operation === "unchanged")).toBe(true);
+    });
 
     test("respects ignoreKeys option", () => {
-      const engine = new DiffEngine({ ignoreKeys: ["ignored"] })
-      const result = engine.compare(
-        { a: 1, ignored: "old" },
-        { a: 1, ignored: "new" }
-      )
+      const engine = new DiffEngine({ ignoreKeys: ["ignored"] });
+      const result = engine.compare({ a: 1, ignored: "old" }, { a: 1, ignored: "new" });
 
-      expect(result.summary.totalChanges).toBe(0)
-    })
+      expect(result.summary.totalChanges).toBe(0);
+    });
 
     test("respects ignorePaths option", () => {
-      const engine = new DiffEngine({ ignorePaths: ["nested.ignored"] })
+      const engine = new DiffEngine({ ignorePaths: ["nested.ignored"] });
       const result = engine.compare(
         { nested: { ignored: "old", kept: 1 } },
-        { nested: { ignored: "new", kept: 2 } }
-      )
+        { nested: { ignored: "new", kept: 2 } },
+      );
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("nested.kept")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("nested.kept");
+    });
 
     test("supports wildcard in ignorePaths", () => {
-      const engine = new DiffEngine({ ignorePaths: ["plugins.*"] })
+      const engine = new DiffEngine({ ignorePaths: ["plugins.*"] });
       const result = engine.compare(
         { plugins: { a: 1, b: 2 }, other: 1 },
-        { plugins: { a: 99, b: 99 }, other: 2 }
-      )
+        { plugins: { a: 99, b: 99 }, other: 2 },
+      );
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("other")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("other");
+    });
 
     test("respects custom path separator for ignorePaths descendants", () => {
       const engine = new DiffEngine({
         ignorePaths: ["nested/ignored"],
-        pathSeparator: "/"
-      })
+        pathSeparator: "/",
+      });
       const result = engine.compare(
         { nested: { ignored: "old", kept: 1 } },
-        { nested: { ignored: "new", kept: 2 } }
-      )
+        { nested: { ignored: "new", kept: 2 } },
+      );
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("nested/kept")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("nested/kept");
+    });
 
     test("escapes regex metacharacters in wildcard ignorePaths", () => {
-      const engine = new DiffEngine({ ignorePaths: ["module.rules.[0].*"] })
+      const engine = new DiffEngine({ ignorePaths: ["module.rules.[0].*"] });
       const result = engine.compare(
         {
           module: { rules: [{ test: "js", use: "babel-loader" }] },
-          other: 1
+          other: 1,
         },
         {
           module: { rules: [{ test: "js", use: "swc-loader" }] },
-          other: 2
-        }
-      )
+          other: 2,
+        },
+      );
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("other")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("other");
+    });
 
     test("respects maxDepth option", () => {
-      const engine = new DiffEngine({ maxDepth: 1 })
-      const result = engine.compare(
-        { a: { b: { c: 1 } } },
-        { a: { b: { c: 2 } } }
-      )
+      const engine = new DiffEngine({ maxDepth: 1 });
+      const result = engine.compare({ a: { b: { c: 1 } } }, { a: { b: { c: 2 } } });
 
-      expect(result.summary.totalChanges).toBe(0)
-    })
+      expect(result.summary.totalChanges).toBe(0);
+    });
 
     test("matches module.rules by test when enabled", () => {
       const left = {
         module: {
           rules: [
             { test: /\\.js$/, use: "babel-loader" },
-            { test: /\\.css$/, use: ["style-loader", "css-loader"] }
-          ]
-        }
-      }
+            { test: /\\.css$/, use: ["style-loader", "css-loader"] },
+          ],
+        },
+      };
       const right = {
         module: {
           rules: [
             { test: /\\.css$/, use: ["style-loader", "css-loader"] },
-            { test: /\\.js$/, use: "babel-loader" }
-          ]
-        }
-      }
+            { test: /\\.js$/, use: "babel-loader" },
+          ],
+        },
+      };
 
-      const engine = new DiffEngine({ matchRulesByTest: true })
-      const result = engine.compare(left, right)
+      const engine = new DiffEngine({ matchRulesByTest: true });
+      const result = engine.compare(left, right);
 
-      expect(result.summary.totalChanges).toBe(0)
-    })
+      expect(result.summary.totalChanges).toBe(0);
+    });
 
     test("detects actual changes when matching module.rules by test", () => {
       const left = {
         module: {
-          rules: [{ test: /\\.js$/, use: "babel-loader" }]
-        }
-      }
+          rules: [{ test: /\\.js$/, use: "babel-loader" }],
+        },
+      };
       const right = {
         module: {
-          rules: [{ test: /\\.js$/, use: "swc-loader" }]
-        }
-      }
+          rules: [{ test: /\\.js$/, use: "swc-loader" }],
+        },
+      };
 
-      const engine = new DiffEngine({ matchRulesByTest: true })
-      const result = engine.compare(left, right)
+      const engine = new DiffEngine({ matchRulesByTest: true });
+      const result = engine.compare(left, right);
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.entries[0].path.humanPath).toContain("module.rules.{test:/")
-      expect(result.entries[0].path.humanPath).toContain(".use")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.entries[0].path.humanPath).toContain("module.rules.{test:/");
+      expect(result.entries[0].path.humanPath).toContain(".use");
+    });
 
     test("keeps duplicate test-pattern rules aligned across reordering", () => {
       const left = {
@@ -230,208 +224,187 @@ describe("DiffEngine", () => {
           rules: [
             { test: /\\.js$/, use: "thread-loader" },
             { test: /\\.js$/, use: "babel-loader" },
-            { test: /\\.css$/, use: "css-loader" }
-          ]
-        }
-      }
+            { test: /\\.css$/, use: "css-loader" },
+          ],
+        },
+      };
       const right = {
         module: {
           rules: [
             { test: /\\.css$/, use: "css-loader" },
             { test: /\\.js$/, use: "thread-loader" },
-            { test: /\\.js$/, use: "babel-loader" }
-          ]
-        }
-      }
+            { test: /\\.js$/, use: "babel-loader" },
+          ],
+        },
+      };
 
-      const engine = new DiffEngine({ matchRulesByTest: true })
-      const result = engine.compare(left, right)
+      const engine = new DiffEngine({ matchRulesByTest: true });
+      const result = engine.compare(left, right);
 
-      expect(result.summary.totalChanges).toBe(0)
-    })
-  })
+      expect(result.summary.totalChanges).toBe(0);
+    });
+  });
 
   describe("special types", () => {
     test("handles functions", () => {
-      const engine = new DiffEngine()
-      const fn1 = () => "test"
-      const fn2 = () => "test"
-      const result = engine.compare({ fn: fn1 }, { fn: fn2 })
+      const engine = new DiffEngine();
+      const fn1 = () => "test";
+      const fn2 = () => "test";
+      const result = engine.compare({ fn: fn1 }, { fn: fn2 });
 
-      expect(result.summary.totalChanges).toBe(0)
-    })
+      expect(result.summary.totalChanges).toBe(0);
+    });
 
     test("detects different functions", () => {
-      const engine = new DiffEngine()
-      const fn1 = () => "test1"
-      const fn2 = () => "test2"
-      const result = engine.compare({ fn: fn1 }, { fn: fn2 })
+      const engine = new DiffEngine();
+      const fn1 = () => "test1";
+      const fn2 = () => "test2";
+      const result = engine.compare({ fn: fn1 }, { fn: fn2 });
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.summary.changed).toBe(1)
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.summary.changed).toBe(1);
+    });
 
     test("handles RegExp", () => {
-      const engine = new DiffEngine()
-      const result = engine.compare({ re: /test/i }, { re: /test/i })
+      const engine = new DiffEngine();
+      const result = engine.compare({ re: /test/i }, { re: /test/i });
 
-      expect(result.summary.totalChanges).toBe(0)
-    })
+      expect(result.summary.totalChanges).toBe(0);
+    });
 
     test("detects different RegExp", () => {
-      const engine = new DiffEngine()
-      const result = engine.compare({ re: /test/i }, { re: /other/i })
+      const engine = new DiffEngine();
+      const result = engine.compare({ re: /test/i }, { re: /other/i });
 
-      expect(result.summary.totalChanges).toBe(1)
-    })
+      expect(result.summary.totalChanges).toBe(1);
+    });
 
     test("handles Date objects", () => {
-      const engine = new DiffEngine()
-      const date1 = new Date("2025-01-01")
-      const date2 = new Date("2025-01-01")
-      const result = engine.compare({ date: date1 }, { date: date2 })
+      const engine = new DiffEngine();
+      const date1 = new Date("2025-01-01");
+      const date2 = new Date("2025-01-01");
+      const result = engine.compare({ date: date1 }, { date: date2 });
 
-      expect(result.summary.totalChanges).toBe(0)
-    })
+      expect(result.summary.totalChanges).toBe(0);
+    });
 
     test("detects different Date objects", () => {
-      const engine = new DiffEngine()
-      const date1 = new Date("2025-01-01")
-      const date2 = new Date("2025-01-02")
-      const result = engine.compare({ date: date1 }, { date: date2 })
+      const engine = new DiffEngine();
+      const date1 = new Date("2025-01-01");
+      const date2 = new Date("2025-01-02");
+      const result = engine.compare({ date: date1 }, { date: date2 });
 
-      expect(result.summary.totalChanges).toBe(1)
-    })
+      expect(result.summary.totalChanges).toBe(1);
+    });
 
     test("does not deep-compare arbitrary class instances", () => {
       class Plugin {
         constructor() {
-          this.name = "same"
+          this.name = "same";
         }
       }
 
-      const engine = new DiffEngine()
-      const result = engine.compare(
-        { plugin: new Plugin() },
-        { plugin: new Plugin() }
-      )
+      const engine = new DiffEngine();
+      const result = engine.compare({ plugin: new Plugin() }, { plugin: new Plugin() });
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("plugin")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("plugin");
+    });
 
     test("supports plugin-aware comparison for class instances", () => {
       class Plugin {
         constructor() {
-          this.name = "same"
-          this.options = { compress: true, level: 3 }
+          this.name = "same";
+          this.options = { compress: true, level: 3 };
         }
       }
 
-      const engine = new DiffEngine({ pluginAware: true })
-      const result = engine.compare(
-        { plugin: new Plugin() },
-        { plugin: new Plugin() }
-      )
+      const engine = new DiffEngine({ pluginAware: true });
+      const result = engine.compare({ plugin: new Plugin() }, { plugin: new Plugin() });
 
-      expect(result.summary.totalChanges).toBe(0)
-    })
+      expect(result.summary.totalChanges).toBe(0);
+    });
 
     test("plugin-aware comparison detects option changes", () => {
       class Plugin {
         constructor(level) {
-          this.name = "same"
-          this.options = { compress: true, level }
+          this.name = "same";
+          this.options = { compress: true, level };
         }
       }
 
-      const engine = new DiffEngine({ pluginAware: true })
-      const result = engine.compare(
-        { plugin: new Plugin(2) },
-        { plugin: new Plugin(5) }
-      )
+      const engine = new DiffEngine({ pluginAware: true });
+      const result = engine.compare({ plugin: new Plugin(2) }, { plugin: new Plugin(5) });
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("plugin")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("plugin");
+    });
 
     test("plugin-aware comparison requires constructor identity", () => {
       const makePlugin = () =>
         class Plugin {
           constructor() {
-            this.options = { compress: true, level: 3 }
+            this.options = { compress: true, level: 3 };
           }
-        }
+        };
 
-      const LeftPlugin = makePlugin()
-      const RightPlugin = makePlugin()
+      const LeftPlugin = makePlugin();
+      const RightPlugin = makePlugin();
 
-      const engine = new DiffEngine({ pluginAware: true })
-      const result = engine.compare(
-        { plugin: new LeftPlugin() },
-        { plugin: new RightPlugin() }
-      )
+      const engine = new DiffEngine({ pluginAware: true });
+      const result = engine.compare({ plugin: new LeftPlugin() }, { plugin: new RightPlugin() });
 
-      expect(result.summary.totalChanges).toBe(1)
-      expect(result.entries[0].path.humanPath).toBe("plugin")
-    })
+      expect(result.summary.totalChanges).toBe(1);
+      expect(result.entries[0].path.humanPath).toBe("plugin");
+    });
 
     test("plugin-aware comparison serializes Map and Set contents", () => {
       class Plugin {
         constructor(mapValue) {
-          this.map = new Map([["key", mapValue]])
-          this.set = new Set(["a", "b"])
+          this.map = new Map([["key", mapValue]]);
+          this.set = new Set(["a", "b"]);
         }
       }
 
-      const engine = new DiffEngine({ pluginAware: true })
-      const unchanged = engine.compare(
-        { plugin: new Plugin(1) },
-        { plugin: new Plugin(1) }
-      )
-      const changed = engine.compare(
-        { plugin: new Plugin(1) },
-        { plugin: new Plugin(2) }
-      )
+      const engine = new DiffEngine({ pluginAware: true });
+      const unchanged = engine.compare({ plugin: new Plugin(1) }, { plugin: new Plugin(1) });
+      const changed = engine.compare({ plugin: new Plugin(1) }, { plugin: new Plugin(2) });
 
-      expect(unchanged.summary.totalChanges).toBe(0)
-      expect(changed.summary.totalChanges).toBe(1)
-    })
+      expect(unchanged.summary.totalChanges).toBe(0);
+      expect(changed.summary.totalChanges).toBe(1);
+    });
 
     test("plugin-aware comparison keeps __instance property in payload", () => {
       class Plugin {
         constructor(hasMarker) {
           if (hasMarker) {
-            this.__instance = "Plugin"
+            this.__instance = "Plugin";
           }
-          this.options = { enabled: true }
+          this.options = { enabled: true };
         }
       }
 
-      const engine = new DiffEngine({ pluginAware: true })
-      const result = engine.compare(
-        { plugin: new Plugin(true) },
-        { plugin: new Plugin(false) }
-      )
+      const engine = new DiffEngine({ pluginAware: true });
+      const result = engine.compare({ plugin: new Plugin(true) }, { plugin: new Plugin(false) });
 
-      expect(result.summary.totalChanges).toBe(1)
-    })
-  })
+      expect(result.summary.totalChanges).toBe(1);
+    });
+  });
 
   describe("metadata", () => {
     test("includes comparison timestamp", () => {
-      const engine = new DiffEngine()
-      const result = engine.compare({ a: 1 }, { a: 1 })
+      const engine = new DiffEngine();
+      const result = engine.compare({ a: 1 }, { a: 1 });
 
-      expect(result.metadata.comparedAt).toBeDefined()
-      expect(Number.isNaN(Date.parse(result.metadata.comparedAt))).toBe(false)
-    })
+      expect(result.metadata.comparedAt).toBeDefined();
+      expect(Number.isNaN(Date.parse(result.metadata.comparedAt))).toBe(false);
+    });
 
     test("includes custom metadata", () => {
-      const engine = new DiffEngine()
-      const result = engine.compare({ a: 1 }, { a: 1 }, { custom: "data" })
+      const engine = new DiffEngine();
+      const result = engine.compare({ a: 1 }, { a: 1 }, { custom: "data" });
 
-      expect(result.metadata.custom).toBe("data")
-    })
-  })
-})
+      expect(result.metadata.custom).toBe("data");
+    });
+  });
+});

@@ -1,6 +1,6 @@
 class DemoPlugin {
   constructor(name) {
-    this.name = name
+    this.name = name;
   }
 }
 
@@ -8,11 +8,11 @@ module.exports = () => ({
   mode: "development",
   output: {
     filename: "bundle.js",
-    path: "/Users/alice/project/public/packs"
+    path: "/Users/alice/project/public/packs",
   },
   optimization: {
     minimize: false,
-    minimizer: [() => "terser"]
+    minimizer: [() => "terser"],
   },
-  plugins: [new DemoPlugin("demo")]
-})
+  plugins: [new DemoPlugin("demo")],
+});
