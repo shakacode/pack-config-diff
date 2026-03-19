@@ -47,14 +47,16 @@ function cleanValue(value: unknown, rootPath: string, key?: string, parent?: unk
       .join(" ")
   }
 
+  if (value instanceof RegExp) {
+    return value
+  }
+
   if (typeof value === "string") {
     return makePathRelative(value, rootPath)
   }
 
   if (Array.isArray(value)) {
-    return value
-      .map((item, index) => cleanValue(item, rootPath, String(index), value))
-      .filter((item) => item !== undefined)
+    return value.map((item, index) => cleanValue(item, rootPath, String(index), value))
   }
 
   if (value && typeof value === "object") {

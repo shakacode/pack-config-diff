@@ -37,7 +37,11 @@ export function loadConfigFile(filePath: string, mode: string = "production"): u
     case ".yaml":
     case ".yml": {
       const content = fs.readFileSync(absolutePath, "utf8")
-      return yaml.load(content)
+      // Use CORE_SCHEMA to allow standard scalars (booleans, numbers, null) while
+      // blocking unsafe tags like !!js/function. FAILSAFE_SCHEMA (used in
+      // buildConfigFile.ts) is too strict here since webpack YAML configs may
+      // legitimately contain booleans and numbers.
+      return yaml.load(content, { schema: yaml.CORE_SCHEMA })
     }
     case ".js":
       return loadJsLikeConfig(absolutePath, mode)

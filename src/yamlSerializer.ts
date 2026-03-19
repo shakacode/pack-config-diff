@@ -3,6 +3,16 @@ import { relative, isAbsolute } from "path"
 import { getDocDescription } from "./configDocs"
 import type { DumpMetadata } from "./types"
 
+const YAML_AMBIGUOUS_SCALAR =
+  /^(~|null|true|false|yes|no|on|off|y|n)$/i
+
+const YAML_NUMERIC =
+  /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$|^0x[0-9a-fA-F]+$|^0o[0-7]+$|^[-+]?(\.inf|\.Inf|\.INF)$|^(\.nan|\.NaN|\.NAN)$/
+
+function needsYamlQuoting(value: string): boolean {
+  return YAML_AMBIGUOUS_SCALAR.test(value) || YAML_NUMERIC.test(value)
+}
+
 export class YamlSerializer {
   private annotate: boolean
   private appRoot: string
@@ -101,6 +111,7 @@ export class YamlSerializer {
     }
 
     if (
+      needsYamlQuoting(cleaned) ||
       cleaned.includes(":") ||
       cleaned.includes("#") ||
       cleaned.includes("'") ||
@@ -265,6 +276,7 @@ export class YamlSerializer {
 
   private static quoteKey(key: string): string {
     if (
+      needsYamlQuoting(key) ||
       key.includes(":") ||
       key.includes("#") ||
       key.includes("[") ||
