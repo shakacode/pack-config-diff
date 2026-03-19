@@ -699,7 +699,7 @@ function runDumpSingle(parsed: ParsedDumpArgs): number {
   const restoreEnv = applyEnvVariables(parsed.env)
 
   try {
-    const environment = parsed.environment || "production"
+    const environment = parsed.environment || "development"
     const loadedConfig = loadConfigFile(configFile, environment)
     const configCount = Array.isArray(loadedConfig) ? loadedConfig.length : 1
     const metadata: DumpMetadata = {
