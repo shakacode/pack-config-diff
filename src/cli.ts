@@ -608,7 +608,7 @@ function buildSplitDumpOutputs(config: unknown, options: SplitDumpOptions): File
 }
 
 function resolveBuildEnvironmentLabel(build: ResolvedDumpBuild, parsed: ParsedDumpArgs): string {
-  return parsed.environment || build.environment.NODE_ENV || "development"
+  return parsed.environment || build.environment.NODE_ENV || "production"
 }
 
 function printBuildSummaries(loader: BuildConfigFileLoader, parsed: ParsedDumpArgs): void {
