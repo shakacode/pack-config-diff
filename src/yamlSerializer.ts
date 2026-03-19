@@ -111,6 +111,7 @@ export class YamlSerializer {
     }
 
     if (
+      cleaned === "" ||
       needsYamlQuoting(cleaned) ||
       cleaned.includes(":") ||
       cleaned.includes("#") ||
