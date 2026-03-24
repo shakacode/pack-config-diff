@@ -4,10 +4,6 @@ import { YamlSerializer } from "./yamlSerializer"
 import type { DumpMetadata, SerializeOptions } from "./types"
 
 function jsonReplacer(_key: string, value: unknown): unknown {
-  if (typeof value === "bigint") {
-    return `[BigInt: ${value.toString()}]`
-  }
-
   if (typeof value === "function") {
     return `[Function: ${value.name || "anonymous"}]`
   }

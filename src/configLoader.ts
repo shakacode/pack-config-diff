@@ -48,10 +48,15 @@ export function loadConfigFile(filePath: string, mode: string = "production"): u
     case ".ts":
       try {
         require("ts-node/register/transpile-only")
-      } catch (_error) {
-        throw new Error(
-          `Cannot load TypeScript config (${filePath}): ts-node is required. Install it with \"npm install --save-dev ts-node\".`
-        )
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (message.includes("Cannot find module")) {
+          throw new Error(
+            `Cannot load TypeScript config (${filePath}): ts-node is required. Install it with "npm install --save-dev ts-node".`
+          )
+        }
+
+        throw new Error(`Cannot load TypeScript config (${filePath}): ${message}`)
       }
 
       return loadJsLikeConfig(absolutePath, mode)

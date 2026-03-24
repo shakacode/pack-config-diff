@@ -180,7 +180,7 @@ export class BuildConfigFileLoader {
         return `\${${variableName}:-${defaultValue}}`
       }
 
-      return process.env[variableName] ?? defaultValue
+      return process.env[variableName] || defaultValue
     })
 
     expanded = expanded.replace(/\$\{([^}:]+)\}/g, (match, variableName: string) => {

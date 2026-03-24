@@ -111,6 +111,7 @@ export class YamlSerializer {
     }
 
     if (
+      cleaned === "" ||
       needsYamlQuoting(cleaned) ||
       cleaned.includes(":") ||
       cleaned.includes("#") ||
@@ -125,10 +126,16 @@ export class YamlSerializer {
       cleaned.includes("!") ||
       cleaned.includes("@") ||
       cleaned.includes("`") ||
+      cleaned.includes("\t") ||
+      cleaned.includes("\r") ||
       cleaned.startsWith(" ") ||
-      cleaned.endsWith(" ")
+      cleaned.endsWith(" ") ||
+      cleaned.startsWith(">") ||
+      cleaned.startsWith("?") ||
+      cleaned.startsWith("- ") ||
+      cleaned.startsWith("% ")
     ) {
-      return `"${cleaned.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+      return `"${cleaned.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\t/g, "\\t").replace(/\r/g, "\\r")}"`
     }
 
     return cleaned
@@ -247,7 +254,8 @@ export class YamlSerializer {
         lines.push(`${keyIndent}${safeKey}: ${serialized}`)
       } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
         if (Object.keys(value).length === 0) {
-          lines.push(`${keyIndent}${safeKey}: {}`)
+          const name = YamlSerializer.getConstructorName(value)
+          lines.push(`${keyIndent}${safeKey}: ${name ? `{} # ${name}` : "{}"}`)
         } else {
           lines.push(`${keyIndent}${safeKey}:`)
           const nestedLines = this.serializeObject(
