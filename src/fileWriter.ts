@@ -22,10 +22,10 @@ export class FileWriter {
   }
 
   static writeSingleFile(filePath: string, content: string): void {
+    FileWriter.validateOutputPath(filePath)
+
     const dir = dirname(filePath)
     FileWriter.ensureDirectory(dir)
-
-    FileWriter.validateOutputPath(filePath)
     FileWriter.writeFile(filePath, content)
   }
 

@@ -23,15 +23,20 @@ function getConstructorName(value: unknown): string | undefined {
     return undefined
   }
 
-  const constructorValue = (value as { constructor?: { name?: string } }).constructor
-  return constructorValue?.name
+  try {
+    const proto = Object.getPrototypeOf(value) as { constructor?: { name?: string } } | null
+    if (!proto || proto === Object.prototype) return undefined
+    return proto.constructor?.name
+  } catch {
+    return undefined
+  }
 }
 
 function cleanValue(value: unknown, rootPath: string, key?: string, parent?: unknown): unknown {
   const parentConstructor = getConstructorName(parent)
 
   if (parentConstructor === "EnvironmentPlugin" && (key === "keys" || key === "defaultValues")) {
-    return undefined
+    return "[FILTERED]"
   }
 
   if (parentConstructor === "DefinePlugin" && key === "definitions") {
