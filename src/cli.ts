@@ -637,9 +637,16 @@ function runDumpFromBuildConfig(parsed: ParsedDumpArgs): number {
     return 0
   }
 
-  const builds = parsed.allBuilds
-    ? loader.resolveAllBuilds(parsed.bundler)
-    : [loader.resolveBuild(parsed.build as string, parsed.bundler)]
+  const restoreCliEnv = applyEnvVariables(parsed.env)
+
+  let builds: ResolvedDumpBuild[]
+  try {
+    builds = parsed.allBuilds
+      ? loader.resolveAllBuilds(parsed.bundler)
+      : [loader.resolveBuild(parsed.build as string, parsed.bundler)]
+  } finally {
+    restoreCliEnv()
+  }
 
   const outputs: FileOutput[] = []
 
@@ -727,7 +734,7 @@ function runDumpSingle(parsed: ParsedDumpArgs): number {
     if (parsed.output) {
       FileWriter.writeSingleFile(path.resolve(parsed.output), `${output}\n`)
     } else {
-      console.log(output)
+      console.log(output.trimEnd())
     }
 
     return 0

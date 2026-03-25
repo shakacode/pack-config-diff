@@ -199,14 +199,15 @@ export class YamlSerializer {
         serialized.includes("\n")
       ) {
         lines.push(`${itemIndent}-`)
-        const nonEmptyLines = serialized
-          .split("\n")
-          .filter((line) => line.trim().length > 0)
+        const serializedLines = serialized.split("\n")
+        const nonEmptyLines = serializedLines.filter(
+          (line) => line.trim().length > 0
+        )
         const indentLevels = nonEmptyLines.map(
           (line) => line.match(/^\s*/)?.[0].length || 0
         )
         const minIndent = indentLevels.length > 0 ? Math.min(...indentLevels) : 0
-        nonEmptyLines.forEach((line) => {
+        serializedLines.forEach((line) => {
           lines.push(contentIndent + line.substring(minIndent))
         })
       } else {
