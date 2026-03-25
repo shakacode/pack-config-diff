@@ -180,12 +180,20 @@ export class BuildConfigFileLoader {
         return `\${${variableName}:-${defaultValue}}`
       }
 
+      if (variableName === "BUNDLER") {
+        return bundler
+      }
+
       return process.env[variableName] ?? defaultValue
     })
 
     expanded = expanded.replace(/\$\{([^}:]+)\}/g, (match, variableName: string) => {
       if (!BuildConfigFileLoader.isValidEnvVarName(variableName)) {
         return `\${${variableName}}`
+      }
+
+      if (variableName === "BUNDLER") {
+        return bundler
       }
 
       const value = process.env[variableName]

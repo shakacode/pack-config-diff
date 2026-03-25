@@ -372,6 +372,45 @@ describe("CLI integration", () => {
     )
   })
 
+  test("dump YAML quotes scalar values containing pipe and comma", () => {
+    const configPath = path.join(tempDir, "webpack.config.js")
+    fs.writeFileSync(
+      configPath,
+      [
+        "module.exports = {",
+        "  startsWithPipe: '|something',",
+        "  hasComma: 'left,right'",
+        "}"
+      ].join("\n"),
+      "utf8"
+    )
+
+    const code = run(["dump", configPath])
+
+    expect(code).toBe(0)
+    const output = logSpy.mock.calls.map((args) => args[0]).join("\n")
+    expect(output).toContain('startsWithPipe: "|something"')
+    expect(output).toContain('hasComma: "left,right"')
+  })
+
+  test("dump YAML relativizes multiline strings through serializer path logic", () => {
+    const configPath = path.join(tempDir, "webpack.config.js")
+    const multilinePath = `${path.join(tempDir, "src")}\nsecond line`
+    fs.writeFileSync(
+      configPath,
+      `module.exports = { multilinePath: ${JSON.stringify(multilinePath)} }\n`,
+      "utf8"
+    )
+
+    const code = run(["dump", configPath, `--app-root=${tempDir}`])
+
+    expect(code).toBe(0)
+    const output = logSpy.mock.calls.map((args) => args[0]).join("\n")
+    expect(output).toContain("multilinePath: |")
+    expect(output).toContain("  ./src")
+    expect(output).toContain("  second line")
+  })
+
   test("dump --list-builds reads build config entries", () => {
     const webpackConfig = path.join(tempDir, "webpack.config.js")
     const rspackConfig = path.join(tempDir, "rspack.config.js")
@@ -454,6 +493,37 @@ describe("CLI integration", () => {
     expect(fs.existsSync(serverDump)).toBe(true)
     expect(fs.readFileSync(clientDump, "utf8")).toContain("mode: production")
     expect(fs.readFileSync(serverDump, "utf8")).toContain("mode: production")
+  })
+
+  test("dump --build uses CLI bundler for ${BUNDLER:-default} expansion", () => {
+    const webpackConfig = path.join(tempDir, "webpack.config.js")
+    const rspackConfig = path.join(tempDir, "rspack.config.js")
+    const buildConfig = path.join(tempDir, "pack-config-diff-builds.yml")
+
+    fs.writeFileSync(webpackConfig, "module.exports = { mode: 'development' }\n", "utf8")
+    fs.writeFileSync(rspackConfig, "module.exports = { mode: 'production' }\n", "utf8")
+    fs.writeFileSync(
+      buildConfig,
+      [
+        "builds:",
+        "  app:",
+        `    config: "${tempDir}/\${BUNDLER:-webpack}.config.js"`,
+        "    outputs:",
+        "      - client"
+      ].join("\n"),
+      "utf8"
+    )
+
+    const code = run([
+      "dump",
+      "--build=app",
+      "--bundler=rspack",
+      `--config-file=${buildConfig}`
+    ])
+
+    expect(code).toBe(0)
+    const output = logSpy.mock.calls.map((args) => args[0]).join("\n")
+    expect(output).toContain("mode: production")
   })
 
   test("dump --all-builds exports webpack and rspack builds in one run", () => {

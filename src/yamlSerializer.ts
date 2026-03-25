@@ -115,12 +115,14 @@ export class YamlSerializer {
       needsYamlQuoting(cleaned) ||
       cleaned.includes(":") ||
       cleaned.includes("#") ||
+      cleaned.includes(",") ||
       cleaned.includes("'") ||
       cleaned.includes('"') ||
       cleaned.includes("[") ||
       cleaned.includes("]") ||
       cleaned.includes("{") ||
       cleaned.includes("}") ||
+      cleaned.includes("|") ||
       cleaned.includes("*") ||
       cleaned.includes("&") ||
       cleaned.includes("!") ||
@@ -246,10 +248,8 @@ export class YamlSerializer {
       }
 
       if (typeof value === "string" && value.includes("\n")) {
-        lines.push(`${keyIndent}${safeKey}: |`)
-        for (const line of value.split("\n")) {
-          lines.push(`${valueIndent}${line}`)
-        }
+        const serialized = this.serializeString(value, indent)
+        lines.push(`${keyIndent}${safeKey}: ${serialized}`)
       } else if (value instanceof RegExp || typeof value === "function") {
         const serialized = this.serializeValue(value, indent + 2, fullKeyPath)
         lines.push(`${keyIndent}${safeKey}: ${serialized}`)
