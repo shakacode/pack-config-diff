@@ -11,9 +11,23 @@ export function resolveExportedConfig(moduleExports: unknown, mode: string = "pr
   return moduleExports
 }
 
+function clearRequireCache(moduleId: string, seen = new Set<string>()): void {
+  const cachedModule = require.cache[moduleId]
+  if (!cachedModule || seen.has(moduleId)) {
+    return
+  }
+
+  seen.add(moduleId)
+  for (const child of cachedModule.children) {
+    clearRequireCache(child.id, seen)
+  }
+
+  delete require.cache[moduleId]
+}
+
 export function loadJsLikeConfig(absolutePath: string, mode: string = "production"): unknown {
   const resolvedModulePath = require.resolve(absolutePath)
-  delete require.cache[resolvedModulePath]
+  clearRequireCache(resolvedModulePath)
 
   const moduleExports = require(resolvedModulePath)
   const config = moduleExports?.default ?? moduleExports
