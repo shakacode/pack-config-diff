@@ -175,17 +175,22 @@ export class BuildConfigFileLoader {
   private expandString(input: string, bundler: string): string {
     let expanded = input.replace(/\$\{BUNDLER\}/g, bundler)
 
-    expanded = expanded.replace(/\$\{([^}:]+):-([^}]*)\}/g, (_match, variableName: string, defaultValue: string) => {
-      if (!BuildConfigFileLoader.isValidEnvVarName(variableName)) {
-        return `\${${variableName}:-${defaultValue}}`
+    expanded = expanded.replace(/\$\{([^}]+)\}/g, (match, expression: string) => {
+      const defaultSeparatorIndex = expression.indexOf(":-")
+      if (defaultSeparatorIndex !== -1) {
+        const variableName = expression.slice(0, defaultSeparatorIndex)
+        const defaultValue = expression.slice(defaultSeparatorIndex + 2)
+
+        if (!BuildConfigFileLoader.isValidEnvVarName(variableName)) {
+          return match
+        }
+
+        return process.env[variableName] ?? defaultValue
       }
 
-      return process.env[variableName] ?? defaultValue
-    })
-
-    expanded = expanded.replace(/\$\{([^}:]+)\}/g, (match, variableName: string) => {
+      const variableName = expression
       if (!BuildConfigFileLoader.isValidEnvVarName(variableName)) {
-        return `\${${variableName}}`
+        return match
       }
 
       const value = process.env[variableName]
