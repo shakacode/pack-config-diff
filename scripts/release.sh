@@ -104,19 +104,29 @@ echo "  package.json version: v$CURRENT_VERSION"
 echo "  npm tag: $EFFECTIVE_NPM_TAG"
 echo "Dry run: $DRY_RUN"
 
-if [[ "$DRY_RUN" == false ]] && [[ -z "${NPM_TOKEN:-}" ]]; then
-  echo "Error: NPM_TOKEN must be set for publishing." >&2
-  exit 1
-fi
+if [[ "$DRY_RUN" == false ]]; then
+  if ! npm whoami >/dev/null 2>&1; then
+    echo "Error: npm is not authenticated. Run: npm login" >&2
+    exit 1
+  fi
 
-if [[ "$DRY_RUN" == false ]] && [[ -z "${GITHUB_TOKEN:-}" ]]; then
-  echo "Error: GITHUB_TOKEN must be set for GitHub release creation." >&2
-  exit 1
+  if [[ -z "${GITHUB_TOKEN:-}" ]] && [[ -z "${GH_TOKEN:-}" ]]; then
+    if command -v gh >/dev/null 2>&1; then
+      if GH_AUTH_TOKEN="$(gh auth token 2>/dev/null)"; then
+        export GITHUB_TOKEN="$GH_AUTH_TOKEN"
+      else
+        echo "Error: GitHub auth unavailable. Run: gh auth login" >&2
+        exit 1
+      fi
+    else
+      echo "Error: GitHub auth unavailable. Install gh or export GITHUB_TOKEN." >&2
+      exit 1
+    fi
+  fi
 fi
 
 RELEASE_IT_ARGS=(
   "$TARGET_VERSION"
-  "--ci"
   "--npm.tag=$EFFECTIVE_NPM_TAG"
 )
 
