@@ -219,6 +219,15 @@ describe("CLI integration", () => {
     );
   });
 
+  test("returns exit code 2 when only --left is provided", () => {
+    const code = run(["--left=/some/file.json"]);
+
+    expect(code).toBe(2);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("--left and --right are required"),
+    );
+  });
+
   test("returns exit code 2 when config file does not exist", () => {
     const code = run(["--left=/nonexistent/left.json", "--right=/nonexistent/right.json"]);
 
