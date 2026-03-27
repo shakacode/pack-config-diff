@@ -157,20 +157,20 @@ Exit Codes:
 ## Programmatic API
 
 ```js
-const { DiffEngine, DiffFormatter } = require("pack-config-diff")
+const { DiffEngine, DiffFormatter } = require("pack-config-diff");
 
 const engine = new DiffEngine({
   includeUnchanged: false,
-  ignorePaths: ["plugins.*"]
-})
+  ignorePaths: ["plugins.*"],
+});
 
 const result = engine.compare(leftConfig, rightConfig, {
   leftFile: "webpack.dev.js",
-  rightFile: "webpack.prod.js"
-})
+  rightFile: "webpack.prod.js",
+});
 
-const formatter = new DiffFormatter()
-console.log(formatter.formatDetailed(result))
+const formatter = new DiffFormatter();
+console.log(formatter.formatDetailed(result));
 ```
 
 ## TypeScript build

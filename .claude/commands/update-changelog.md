@@ -166,5 +166,5 @@ If the user passed `release` or an explicit version string:
   - `detailed` for human-readable console output
   - `markdown` for PR-ready diff reports
   - `json` and `yaml` for programmatic consumption
-  [PR #3](https://github.com/shakacode/pack-config-diff/pull/3) by [justin808](https://github.com/justin808).
+    [PR #3](https://github.com/shakacode/pack-config-diff/pull/3) by [justin808](https://github.com/justin808).
 ```

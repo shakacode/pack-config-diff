@@ -2,7 +2,14 @@
   "name": "pack-config-diff",
   "version": "1.0.0",
   "description": "Semantic configuration differ for webpack and rspack projects",
-  "keywords": ["webpack", "rspack", "config", "diff", "compare", "configuration"],
+  "keywords": [
+    "webpack",
+    "rspack",
+    "config",
+    "diff",
+    "compare",
+    "configuration"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -39,16 +46,23 @@
     }
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/jest": "^29.0.0",
     "@types/js-yaml": "^4.0.0",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
     "jest": "^29.0.0",
+    "prettier": "^3.8.1",
     "ts-jest": "^29.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.57.1"
   },
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
     "test": "jest",
+    "lint": "eslint . && prettier --check .",
+    "lint:fix": "eslint --fix . && prettier --write .",
     "prepublishOnly": "npm run build",
     "release": "bash scripts/release.sh",
     "release:dry-run": "bash scripts/release.sh --dry-run"
