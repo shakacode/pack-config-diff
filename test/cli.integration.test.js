@@ -210,6 +210,22 @@ describe("CLI integration", () => {
     expect(logSpy).toHaveBeenNthCalledWith(2, "✅ No differences found");
   });
 
+  test("returns exit code 2 when --left and --right are missing", () => {
+    const code = run([]);
+
+    expect(code).toBe(2);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("--left and --right are required"),
+    );
+  });
+
+  test("returns exit code 2 when config file does not exist", () => {
+    const code = run(["--left=/nonexistent/left.json", "--right=/nonexistent/right.json"]);
+
+    expect(code).toBe(2);
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("Config file not found"));
+  });
+
   test("returns a helpful message when loading .ts configs without ts-node", () => {
     const left = path.join(tempDir, "left.ts");
     const right = path.join(tempDir, "right.json");
@@ -219,7 +235,7 @@ describe("CLI integration", () => {
 
     const code = run([`--left=${left}`, `--right=${right}`, "--format=summary"]);
 
-    expect(code).toBe(1);
+    expect(code).toBe(2);
     expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("ts-node is required"));
   });
 });
