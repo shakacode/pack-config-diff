@@ -6,5 +6,5 @@ try {
   process.exit(exitCode);
 } catch (error) {
   console.error(error.message);
-  process.exit(1);
+  process.exit(2);
 }
