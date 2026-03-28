@@ -61,8 +61,9 @@ Supported File Formats:
   - TypeScript (.ts) - requires ts-node
 
 Exit Codes:
-  0 - Success, no differences found
-  1 - Differences found or error occurred`;
+  0 - No differences found
+  1 - Differences found
+  2 - Error occurred`;
 
 function splitCsv(value: string | undefined): string[] {
   if (!value) {
@@ -357,6 +358,6 @@ export function run(args: string[]): number {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(message);
-    return 1;
+    return 2;
   }
 }
