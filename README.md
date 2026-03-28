@@ -150,8 +150,9 @@ Supported File Formats:
   - TypeScript (.ts) - requires ts-node
 
 Exit Codes:
-  0 - Success, no differences found
-  1 - Differences found or error occurred
+  0 - No differences found
+  1 - Differences found
+  2 - Error occurred
 ```
 
 ## Programmatic API
