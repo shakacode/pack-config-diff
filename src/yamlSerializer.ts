@@ -8,6 +8,11 @@ const YAML_AMBIGUOUS_SCALAR = /^(~|null|true|false|yes|no|on|off|y|n)$/i;
 const YAML_NUMERIC =
   /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$|^0x[0-9a-fA-F]+$|^0o[0-7]+$|^[-+]?(\.inf|\.Inf|\.INF)$|^(\.nan|\.NaN|\.NAN)$/;
 
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHAR_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/;
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHAR_GLOBAL_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g;
+
 function needsYamlQuoting(value: string): boolean {
   return YAML_AMBIGUOUS_SCALAR.test(value) || YAML_NUMERIC.test(value);
 }
@@ -127,6 +132,7 @@ export class YamlSerializer {
       cleaned.includes("`") ||
       cleaned.includes("\t") ||
       cleaned.includes("\r") ||
+      CONTROL_CHAR_RE.test(cleaned) ||
       cleaned.startsWith(" ") ||
       cleaned.endsWith(" ") ||
       cleaned.startsWith("|") ||
@@ -135,7 +141,13 @@ export class YamlSerializer {
       cleaned.startsWith("- ") ||
       cleaned.startsWith("% ")
     ) {
-      return `"${cleaned.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\t/g, "\\t").replace(/\r/g, "\\r")}"`;
+      const escaped = cleaned
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')
+        .replace(/\t/g, "\\t")
+        .replace(/\r/g, "\\r")
+        .replace(CONTROL_CHAR_GLOBAL_RE, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+      return `"${escaped}"`;
     }
 
     return cleaned;

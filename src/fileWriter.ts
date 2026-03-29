@@ -51,8 +51,10 @@ export class FileWriter {
       ext = "txt";
     }
 
+    // eslint-disable-next-line no-control-regex
+    const sanitize = (s: string): string => s.replace(/[/\\:*?"<>|\x00-\x1f]/g, "_");
     const name = buildName || env;
-    return `${bundler}-${name}-${configType}.${ext}`;
+    return `${sanitize(bundler)}-${sanitize(name)}-${sanitize(configType)}.${ext}`;
   }
 
   private static writeFile(filePath: string, content: string): void {

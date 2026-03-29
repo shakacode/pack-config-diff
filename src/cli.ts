@@ -159,10 +159,6 @@ function readOptionValue(
   }
 
   const next = index + 1 < args.length ? args[index + 1] : undefined;
-  if (next?.startsWith("-")) {
-    return { value: undefined, consumesNext: false };
-  }
-
   return { value: next, consumesNext: next !== undefined };
 }
 
@@ -458,6 +454,10 @@ function parseDumpArgs(args: string[]): ParsedDumpArgs {
     throw new Error(
       "--list-builds cannot be combined with positional config file, --build, or --all-builds",
     );
+  }
+
+  if (parsed.listBuilds && (parsed.output || parsed.saveDir)) {
+    throw new Error("--list-builds cannot be combined with --output or --save-dir");
   }
 
   const usingBuildConfig = parsed.listBuilds || parsed.allBuilds || Boolean(parsed.build);
