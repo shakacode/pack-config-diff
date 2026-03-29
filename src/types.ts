@@ -50,44 +50,44 @@ export interface NormalizedConfig {
 }
 
 export interface DumpMetadata {
-  exportedAt: string
-  bundler: string
-  environment: string
-  configType: string
-  configCount: number
+  exportedAt: string;
+  bundler: string;
+  environment: string;
+  configType: string;
+  configCount: number;
 }
 
 export interface SerializeOptions {
-  format: "yaml" | "json" | "inspect"
-  annotate?: boolean
-  appRoot?: string
-  depth?: number | null
+  format: "yaml" | "json" | "inspect";
+  annotate?: boolean;
+  appRoot?: string;
+  depth?: number | null;
 }
 
 export interface FileOutput {
-  filename: string
-  content: string
-  metadata: DumpMetadata
+  filename: string;
+  content: string;
+  metadata: DumpMetadata;
 }
 
 export interface DumpBuildConfig {
-  description?: string
-  bundler?: "webpack" | "rspack"
-  environment?: Record<string, string>
-  outputs?: string[]
-  config: string
+  description?: string;
+  bundler?: "webpack" | "rspack";
+  environment?: Record<string, string>;
+  outputs?: string[];
+  config: string;
 }
 
 export interface DumpBuildConfigFile {
-  default_bundler?: "webpack" | "rspack"
-  builds: Record<string, DumpBuildConfig>
+  default_bundler?: "webpack" | "rspack";
+  builds: Record<string, DumpBuildConfig>;
 }
 
 export interface ResolvedDumpBuild {
-  name: string
-  description?: string
-  bundler: "webpack" | "rspack"
-  environment: Record<string, string>
-  outputs: string[]
-  config: string
+  name: string;
+  description?: string;
+  bundler: "webpack" | "rspack";
+  environment: Record<string, string>;
+  outputs: string[];
+  config: string;
 }

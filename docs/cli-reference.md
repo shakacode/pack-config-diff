@@ -31,13 +31,13 @@ Both accept `.js`, `.ts`, `.json`, `.yaml`, or `.yml` files. See [Input Formats]
 
 Output format. Default: `detailed`.
 
-| Format | Description |
-|--------|-------------|
+| Format     | Description                                                   |
+| ---------- | ------------------------------------------------------------- |
 | `detailed` | Human-readable with descriptions, impact notes, and doc links |
-| `summary` | One-line count: `3 changes: +1 -0 ~2` |
-| `json` | Machine-readable JSON with metadata |
-| `yaml` | Machine-readable YAML with metadata |
-| `markdown` | GitHub-flavored markdown table for PR comments |
+| `summary`  | One-line count: `3 changes: +1 -0 ~2`                         |
+| `json`     | Machine-readable JSON with metadata                           |
+| `yaml`     | Machine-readable YAML with metadata                           |
+| `markdown` | GitHub-flavored markdown table for PR comments                |
 
 See [Output Formats](./output-formats.md) for examples of each.
 
@@ -124,11 +124,11 @@ Path to the config file to load and serialize. Accepts `.js`, `.ts`, `.json`, `.
 
 Output format. Default: `yaml`.
 
-| Format | Description |
-|--------|-------------|
-| `yaml` | Human-readable YAML with metadata header |
-| `json` | JSON payload `{ metadata, config }` with special-type placeholders |
-| `inspect` | Node.js `util.inspect` output with metadata and config sections |
+| Format    | Description                                                        |
+| --------- | ------------------------------------------------------------------ |
+| `yaml`    | Human-readable YAML with metadata header                           |
+| `json`    | JSON payload `{ metadata, config }` with special-type placeholders |
+| `inspect` | Node.js `util.inspect` output with metadata and config sections    |
 
 ### `--output=<file>`
 
@@ -186,7 +186,7 @@ List available builds in the matrix and exit.
 
 ## Exit codes
 
-| Code | Meaning |
-|------|---------|
-| `0` | Success (`diff`: no changes found; `dump`: export succeeded; or `--help` displayed) |
-| `1` | Differences found (`diff`) or an error occurred |
+| Code | Meaning                                                                             |
+| ---- | ----------------------------------------------------------------------------------- |
+| `0`  | Success (`diff`: no changes found; `dump`: export succeeded; or `--help` displayed) |
+| `1`  | Differences found (`diff`) or an error occurred                                     |

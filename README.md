@@ -3,6 +3,7 @@
 Semantic configuration tooling for webpack and rspack projects.
 
 `pack-config-diff` supports both:
+
 - `diff`: compare two webpack/rspack **configuration objects** and explain what changed.
 - `dump`: serialize live webpack/rspack configs to YAML/JSON/inspect for review or diffing.
 
@@ -129,12 +130,12 @@ pack-config-diff dump --all-builds --config-file=config/pack-config-diff-builds.
 
 Any file that contains a webpack/rspack configuration object:
 
-| Format | Extensions | Notes |
-|--------|-----------|-------|
-| **JavaScript** | `.js` | Loaded via `require()`. Supports object exports and function exports `(env, argv) => config` |
-| **TypeScript** | `.ts` | Same as JS, requires `ts-node` as a peer dependency |
-| **JSON** | `.json` | A plain JSON object representing the config |
-| **YAML** | `.yaml`, `.yml` | Same structure as JSON, just in YAML syntax |
+| Format         | Extensions      | Notes                                                                                        |
+| -------------- | --------------- | -------------------------------------------------------------------------------------------- |
+| **JavaScript** | `.js`           | Loaded via `require()`. Supports object exports and function exports `(env, argv) => config` |
+| **TypeScript** | `.ts`           | Same as JS, requires `ts-node` as a peer dependency                                          |
+| **JSON**       | `.json`         | A plain JSON object representing the config                                                  |
+| **YAML**       | `.yaml`, `.yml` | Same structure as JSON, just in YAML syntax                                                  |
 
 You can mix formats: `--left=config.yaml --right=webpack.config.js` works fine.
 
@@ -145,23 +146,18 @@ See [Input Formats](./docs/input-formats.md) for full details and examples.
 ## Programmatic API
 
 ```javascript
-const {
-  DiffEngine,
-  DiffFormatter,
-  loadConfigFile,
-  serializeConfig
-} = require("pack-config-diff")
+const { DiffEngine, DiffFormatter, loadConfigFile, serializeConfig } = require("pack-config-diff");
 
-const engine = new DiffEngine({ ignorePaths: ["plugins.*"] })
+const engine = new DiffEngine({ ignorePaths: ["plugins.*"] });
 const result = engine.compare(leftConfig, rightConfig, {
   leftFile: "webpack.dev.js",
   rightFile: "webpack.prod.js",
-})
+});
 
-const formatter = new DiffFormatter()
-console.log(formatter.formatDetailed(result))
+const formatter = new DiffFormatter();
+console.log(formatter.formatDetailed(result));
 
-const config = loadConfigFile("webpack.config.js")
+const config = loadConfigFile("webpack.config.js");
 const output = serializeConfig(
   config,
   {
@@ -169,11 +165,11 @@ const output = serializeConfig(
     bundler: "webpack",
     environment: "development",
     configType: "client",
-    configCount: 1
+    configCount: 1,
   },
-  { format: "yaml" }
-)
-console.log(output)
+  { format: "yaml" },
+);
+console.log(output);
 ```
 
 See [Programmatic API docs](./docs/programmatic-api.md) for full API reference.

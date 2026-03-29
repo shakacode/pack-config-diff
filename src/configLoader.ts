@@ -1,80 +1,88 @@
-import fs from "fs"
-import path from "path"
+import fs from "fs";
+import path from "path";
 
-import yaml from "js-yaml"
+import yaml from "js-yaml";
 
-export function resolveExportedConfig(moduleExports: unknown, mode: string = "production"): unknown {
+export function resolveExportedConfig(
+  moduleExports: unknown,
+  mode: string = "production",
+): unknown {
   if (typeof moduleExports === "function") {
-    return (moduleExports as (env?: unknown, argv?: unknown) => unknown)({}, { mode })
+    return (moduleExports as (env?: unknown, argv?: unknown) => unknown)({}, { mode });
   }
 
-  return moduleExports
+  return moduleExports;
 }
 
 function clearRequireCache(moduleId: string, seen = new Set<string>()): void {
-  const cachedModule = require.cache[moduleId]
+  const cachedModule = require.cache[moduleId];
   if (!cachedModule || seen.has(moduleId)) {
-    return
+    return;
   }
 
-  seen.add(moduleId)
+  seen.add(moduleId);
   for (const child of cachedModule.children) {
-    clearRequireCache(child.id, seen)
+    clearRequireCache(child.id, seen);
   }
 
-  delete require.cache[moduleId]
+  delete require.cache[moduleId];
 }
 
 export function loadJsLikeConfig(absolutePath: string, mode: string = "production"): unknown {
-  const resolvedModulePath = require.resolve(absolutePath)
-  clearRequireCache(resolvedModulePath)
+  const resolvedModulePath = require.resolve(absolutePath);
+  clearRequireCache(resolvedModulePath);
 
-  const moduleExports = require(resolvedModulePath)
-  const config = moduleExports?.default ?? moduleExports
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const moduleExports = require(resolvedModulePath);
+  const config = moduleExports?.default ?? moduleExports;
 
-  return resolveExportedConfig(config, mode)
+  return resolveExportedConfig(config, mode);
 }
 
 export function loadConfigFile(filePath: string, mode: string = "production"): unknown {
-  const absolutePath = path.resolve(filePath)
-  const extension = path.extname(absolutePath).toLowerCase()
+  const absolutePath = path.resolve(filePath);
+  const extension = path.extname(absolutePath).toLowerCase();
 
   if (!fs.existsSync(absolutePath)) {
-    throw new Error(`Config file not found: ${filePath}`)
+    throw new Error(`Config file not found: ${filePath}`);
   }
 
   switch (extension) {
     case ".json": {
-      const content = fs.readFileSync(absolutePath, "utf8")
-      return JSON.parse(content)
+      const content = fs.readFileSync(absolutePath, "utf8");
+      return JSON.parse(content);
     }
     case ".yaml":
     case ".yml": {
-      const content = fs.readFileSync(absolutePath, "utf8")
+      const content = fs.readFileSync(absolutePath, "utf8");
       // Use CORE_SCHEMA to allow standard scalars (booleans, numbers, null) while
       // blocking unsafe tags like !!js/function. FAILSAFE_SCHEMA (used in
       // buildConfigFile.ts) is too strict here since webpack YAML configs may
       // legitimately contain booleans and numbers.
-      return yaml.load(content, { schema: yaml.CORE_SCHEMA })
+      return yaml.load(content, { schema: yaml.CORE_SCHEMA });
     }
     case ".js":
-      return loadJsLikeConfig(absolutePath, mode)
+      return loadJsLikeConfig(absolutePath, mode);
     case ".ts":
       try {
-        require("ts-node/register/transpile-only")
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("ts-node/register/transpile-only");
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
+        const message = error instanceof Error ? error.message : String(error);
         if (message.includes("Cannot find module")) {
           throw new Error(
-            `Cannot load TypeScript config (${filePath}): ts-node is required. Install it with "npm install --save-dev ts-node".`
-          )
+            `Cannot load TypeScript config (${filePath}): ts-node is required. Install it with "npm install --save-dev ts-node".`,
+            { cause: error },
+          );
         }
 
-        throw new Error(`Cannot load TypeScript config (${filePath}): ${message}`)
+        throw new Error(`Cannot load TypeScript config (${filePath}): ${message}`, {
+          cause: error,
+        });
       }
 
-      return loadJsLikeConfig(absolutePath, mode)
+      return loadJsLikeConfig(absolutePath, mode);
     default:
-      throw new Error(`Unsupported file extension: ${extension || "(none)"}`)
+      throw new Error(`Unsupported file extension: ${extension || "(none)"}`);
   }
 }

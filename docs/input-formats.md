@@ -16,12 +16,12 @@ module.exports = {
   mode: "development",
   output: {
     filename: "bundle.js",
-    path: "/Users/alice/project/public/packs"
+    path: "/Users/alice/project/public/packs",
   },
   optimization: {
-    minimize: false
-  }
-}
+    minimize: false,
+  },
+};
 ```
 
 ### Function export
@@ -35,9 +35,9 @@ If your config exports a function (common with webpack's `--env` support), the t
 module.exports = (env, argv) => ({
   mode: argv.mode || "development",
   output: {
-    filename: argv.mode === "production" ? "[name]-[contenthash].js" : "[name].js"
-  }
-})
+    filename: argv.mode === "production" ? "[name]-[contenthash].js" : "[name].js",
+  },
+});
 ```
 
 ### With real plugins
@@ -46,14 +46,12 @@ JS files can use actual plugin class instances. Combine with `--plugin-aware` to
 
 ```javascript
 // webpack.prod.js
-const MiniCssExtractPlugin = require("mini-css-extract-plugin")
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 module.exports = {
   mode: "production",
-  plugins: [
-    new MiniCssExtractPlugin({ filename: "[name]-[contenthash].css" })
-  ]
-}
+  plugins: [new MiniCssExtractPlugin({ filename: "[name]-[contenthash].css" })],
+};
 ```
 
 ```bash
@@ -70,14 +68,14 @@ npm install --save-dev ts-node
 
 ```typescript
 // webpack.config.ts
-import type { Configuration } from "webpack"
+import type { Configuration } from "webpack";
 
 const config: Configuration = {
   mode: "production",
-  output: { filename: "[name]-[contenthash].js" }
-}
+  output: { filename: "[name]-[contenthash].js" },
+};
 
-export default config
+export default config;
 ```
 
 ## JSON (`.json`)
@@ -106,10 +104,10 @@ You can dump a resolved webpack config from Node.js:
 
 ```javascript
 // dump-config.js
-const config = require("./webpack.config.js")
-const resolved = typeof config === "function" ? config({}, { mode: "production" }) : config
-const fs = require("fs")
-fs.writeFileSync("webpack-resolved.json", JSON.stringify(resolved, null, 2))
+const config = require("./webpack.config.js");
+const resolved = typeof config === "function" ? config({}, { mode: "production" }) : config;
+const fs = require("fs");
+fs.writeFileSync("webpack-resolved.json", JSON.stringify(resolved, null, 2));
 ```
 
 Or from a Shakapacker project:
@@ -164,18 +162,18 @@ is equivalent to a JS file that exports:
 ```javascript
 module.exports = {
   mode: "production",
-  output: { filename: "bundle.js" }
-}
+  output: { filename: "bundle.js" },
+};
 ```
 
 ## Limitations by format
 
-| Capability | JS/TS | JSON | YAML |
-|-----------|-------|------|------|
-| Static config objects | Yes | Yes | Yes |
-| Function exports (dynamic configs) | Yes | No | No |
-| Plugin class instances (`new Plugin()`) | Yes | No | No |
-| Regular expressions (`/\.js$/`) | Yes | No (string only) | No (string only) |
-| Functions in config (minimizers, etc.) | Yes | No | No |
+| Capability                              | JS/TS | JSON             | YAML             |
+| --------------------------------------- | ----- | ---------------- | ---------------- |
+| Static config objects                   | Yes   | Yes              | Yes              |
+| Function exports (dynamic configs)      | Yes   | No               | No               |
+| Plugin class instances (`new Plugin()`) | Yes   | No               | No               |
+| Regular expressions (`/\.js$/`)         | Yes   | No (string only) | No (string only) |
+| Functions in config (minimizers, etc.)  | Yes   | No               | No               |
 
 If your config uses plugins or functions, prefer JS files for the most accurate comparison. JSON and YAML are best for comparing the plain data portions of resolved configs.

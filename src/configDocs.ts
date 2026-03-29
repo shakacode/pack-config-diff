@@ -143,5 +143,5 @@ export function getDocForKey(keyPath: string): ConfigDoc | undefined {
 }
 
 export function getDocDescription(keyPath: string): string | undefined {
-  return WEBPACK_CONFIG_DOCS[keyPath]?.description
+  return WEBPACK_CONFIG_DOCS[keyPath]?.description;
 }

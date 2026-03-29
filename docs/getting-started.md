@@ -17,12 +17,12 @@ The labels in the output are derived from the filenames. For example, `--left=we
 
 A config file is anything that ultimately represents a **webpack/rspack configuration object** — the same kind of object you'd pass to `webpack()` or export from `webpack.config.js`. The tool supports four file formats:
 
-| Format | Extensions | How it's loaded |
-|--------|-----------|-----------------|
-| **JavaScript** | `.js` | `require()`'d — can export an object or a function |
-| **TypeScript** | `.ts` | Same as JS, but needs `ts-node` installed |
-| **JSON** | `.json` | Parsed with `JSON.parse()` |
-| **YAML** | `.yaml`, `.yml` | Parsed with `js-yaml` |
+| Format         | Extensions      | How it's loaded                                    |
+| -------------- | --------------- | -------------------------------------------------- |
+| **JavaScript** | `.js`           | `require()`'d — can export an object or a function |
+| **TypeScript** | `.ts`           | Same as JS, but needs `ts-node` installed          |
+| **JSON**       | `.json`         | Parsed with `JSON.parse()`                         |
+| **YAML**       | `.yaml`, `.yml` | Parsed with `js-yaml`                              |
 
 See [Input Formats](./input-formats.md) for detailed examples of each.
 
@@ -31,6 +31,7 @@ See [Input Formats](./input-formats.md) for detailed examples of each.
 Given two simple JSON config files:
 
 **dev.json**
+
 ```json
 {
   "mode": "development",
@@ -39,6 +40,7 @@ Given two simple JSON config files:
 ```
 
 **prod.json**
+
 ```json
 {
   "mode": "production",
@@ -108,12 +110,12 @@ Legend:
 
 ## Common use cases
 
-| Scenario | Command |
-|----------|---------|
-| Why does this work in dev but break in prod? | `pack-config-diff --left=webpack.dev.js --right=webpack.prod.js` |
-| What changed after upgrading a dependency? | `pack-config-diff --left=before.json --right=after.json` |
-| Are webpack and rspack configs equivalent? | `pack-config-diff --left=webpack.config.js --right=rspack.config.js` |
-| Generate a diff for a PR comment | `pack-config-diff --left=base.json --right=head.json --format=markdown` |
+| Scenario                                     | Command                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| Why does this work in dev but break in prod? | `pack-config-diff --left=webpack.dev.js --right=webpack.prod.js`        |
+| What changed after upgrading a dependency?   | `pack-config-diff --left=before.json --right=after.json`                |
+| Are webpack and rspack configs equivalent?   | `pack-config-diff --left=webpack.config.js --right=rspack.config.js`    |
+| Generate a diff for a PR comment             | `pack-config-diff --left=base.json --right=head.json --format=markdown` |
 
 ## Next steps
 

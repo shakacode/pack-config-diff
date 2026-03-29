@@ -186,10 +186,10 @@ Comparing `dev.json` vs `prod.json`
 
 **Summary:** 2 change(s) (+0 / -0 / ~2)
 
-| # | Op | Path | dev | prod |
-| --- | --- | --- | --- | --- |
-| 1 | ~ | `mode` | "development" | "production" |
-| 2 | ~ | `optimization.minimize` | false | true |
+| #   | Op  | Path                    | dev           | prod         |
+| --- | --- | ----------------------- | ------------- | ------------ |
+| 1   | ~   | `mode`                  | "development" | "production" |
+| 2   | ~   | `optimization.minimize` | false         | true         |
 ```
 
 ### Writing markdown to a file for CI

@@ -12,13 +12,14 @@ Webpack plugins are class instances. When two configs each instantiate the same 
 
 ```javascript
 // left.js
-module.exports = { plugins: [new MiniCssExtractPlugin({ filename: "style.css" })] }
+module.exports = { plugins: [new MiniCssExtractPlugin({ filename: "style.css" })] };
 
 // right.js
-module.exports = { plugins: [new MiniCssExtractPlugin({ filename: "style.css" })] }
+module.exports = { plugins: [new MiniCssExtractPlugin({ filename: "style.css" })] };
 ```
 
 Without `--plugin-aware`:
+
 ```text
 1 changes: +0 -0 ~1
 ```
@@ -53,13 +54,13 @@ If the options are different, the diff surfaces the actual property changes:
 ```javascript
 // left.js — development
 module.exports = {
-  plugins: [new MiniCssExtractPlugin({ filename: "[name].css" })]
-}
+  plugins: [new MiniCssExtractPlugin({ filename: "[name].css" })],
+};
 
 // right.js — production
 module.exports = {
-  plugins: [new MiniCssExtractPlugin({ filename: "[name]-[contenthash].css" })]
-}
+  plugins: [new MiniCssExtractPlugin({ filename: "[name]-[contenthash].css" })],
+};
 ```
 
 ```bash
@@ -92,6 +93,7 @@ pack-config-diff --left=left.js --right=right.js --plugin-aware
 `module.rules` is an array, so by default rules are compared by index position. If you reorder rules without changing their content, you get false positives:
 
 **left.json:**
+
 ```json
 {
   "module": {
@@ -104,6 +106,7 @@ pack-config-diff --left=left.js --right=right.js --plugin-aware
 ```
 
 **right.json** (same rules, swapped order):
+
 ```json
 {
   "module": {
@@ -116,6 +119,7 @@ pack-config-diff --left=left.js --right=right.js --plugin-aware
 ```
 
 Without `--match-rules-by-test`:
+
 ```text
 4 changes: +0 -0 ~4
 ```
@@ -155,16 +159,19 @@ pack-config-diff --left=left.json --right=right.json --match-rules-by-test
 Webpack configs often contain absolute filesystem paths (e.g., `output.path`). When comparing configs generated on different machines, these paths differ even though the project structure is identical:
 
 **left.json** (Alice's machine):
+
 ```json
 { "output": { "path": "/Users/alice/project/public/packs" } }
 ```
 
 **right.json** (Bob's machine):
+
 ```json
 { "output": { "path": "/home/bob/project/public/packs" } }
 ```
 
 Without normalization:
+
 ```text
 1 changes: +0 -0 ~1
 ```

@@ -1,89 +1,89 @@
-import { isAbsolute, relative } from "path"
+import { isAbsolute, relative } from "path";
 
 function makePathRelative(str: string, rootPath: string): string {
   if (!isAbsolute(str) || !isAbsolute(rootPath)) {
-    return str
+    return str;
   }
 
-  const rel = relative(rootPath, str)
+  const rel = relative(rootPath, str);
 
   if (rel === "") {
-    return "."
+    return ".";
   }
 
   if (rel.startsWith("..") || isAbsolute(rel)) {
-    return str
+    return str;
   }
 
-  return `./${rel}`
+  return `./${rel}`;
 }
 
 function getConstructorName(value: unknown): string | undefined {
   if (!value || typeof value !== "object") {
-    return undefined
+    return undefined;
   }
 
   try {
-    const proto = Object.getPrototypeOf(value) as { constructor?: { name?: string } } | null
-    if (!proto || proto === Object.prototype) return undefined
-    return proto.constructor?.name
+    const proto = Object.getPrototypeOf(value) as { constructor?: { name?: string } } | null;
+    if (!proto || proto === Object.prototype) return undefined;
+    return proto.constructor?.name;
   } catch {
-    return undefined
+    return undefined;
   }
 }
 
 function cleanValue(value: unknown, rootPath: string, key?: string, parent?: unknown): unknown {
-  const parentConstructor = getConstructorName(parent)
+  const parentConstructor = getConstructorName(parent);
 
   if (parentConstructor === "EnvironmentPlugin" && (key === "keys" || key === "defaultValues")) {
-    return "[FILTERED]"
+    return "[FILTERED]";
   }
 
   if (parentConstructor === "DefinePlugin" && key === "definitions") {
-    return "[FILTERED]"
+    return "[FILTERED]";
   }
 
   if (typeof value === "function") {
-    const source = value.toString()
+    const source = value.toString();
     return source
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line.length > 0)
-      .join(" ")
+      .join(" ");
   }
 
   if (value instanceof RegExp) {
-    return value
+    return value;
   }
 
   if (typeof value === "string") {
-    return makePathRelative(value, rootPath)
+    return makePathRelative(value, rootPath);
   }
 
   if (Array.isArray(value)) {
-    return value.map((item, index) => cleanValue(item, rootPath, String(index), value))
+    return value.map((item, index) => cleanValue(item, rootPath, String(index), value));
   }
 
   if (value && typeof value === "object") {
-    const cleaned: Record<string, unknown> = {}
+    const cleaned: Record<string, unknown> = {};
     for (const objectKey in value) {
       if (!Object.prototype.hasOwnProperty.call(value, objectKey)) {
-        continue
+        continue;
       }
 
-      const nested = (value as Record<string, unknown>)[objectKey]
-      const cleanedValue = cleanValue(nested, rootPath, objectKey, value)
+      const nested = (value as Record<string, unknown>)[objectKey];
+      const cleanedValue = cleanValue(nested, rootPath, objectKey, value);
       if (cleanedValue !== undefined) {
-        cleaned[objectKey] = cleanedValue
+        cleaned[objectKey] = cleanedValue;
       }
     }
 
-    return cleaned
+    return cleaned;
   }
 
-  return value
+  return value;
 }
 
 export function cleanConfig(config: unknown, rootPath: string): unknown {
-  return cleanValue(config, rootPath)
+  return cleanValue(config, rootPath);
 }
