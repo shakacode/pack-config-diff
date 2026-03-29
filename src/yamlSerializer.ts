@@ -146,7 +146,10 @@ export class YamlSerializer {
         .replace(/"/g, '\\"')
         .replace(/\t/g, "\\t")
         .replace(/\r/g, "\\r")
-        .replace(CONTROL_CHAR_GLOBAL_RE, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+        .replace(
+          CONTROL_CHAR_GLOBAL_RE,
+          (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`,
+        );
       return `"${escaped}"`;
     }
 
