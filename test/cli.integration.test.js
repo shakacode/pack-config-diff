@@ -232,7 +232,7 @@ describe("CLI integration", () => {
 
     const code = run([`--left=${left}`, `--right=${right}`, "--format=summary"]);
 
-    expect(code).toBe(1);
+    expect(code).toBe(2);
     expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("ts-node is required"));
   });
 
@@ -341,7 +341,7 @@ describe("CLI integration", () => {
 
     const code = run(["dump", configPath, "--format=json", "--annotate"]);
 
-    expect(code).toBe(1);
+    expect(code).toBe(2);
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining("--annotate requires --format=yaml"),
     );

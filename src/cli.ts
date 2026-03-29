@@ -122,7 +122,8 @@ Supported File Formats:
 
 Exit Codes:
   0 - Success, no differences found for diff command
-  1 - Differences found for diff, or any command error`;
+  1 - Differences found for diff command
+  2 - Error (invalid arguments, missing files, etc.)`;
 
 function splitCsv(value: string | undefined): string[] {
   if (!value) {
@@ -648,13 +649,16 @@ function printBuildSummaries(loader: BuildConfigFileLoader, parsed: ParsedDumpAr
 
 function runDumpFromBuildConfig(parsed: ParsedDumpArgs): number {
   const loader = new BuildConfigFileLoader(parsed.buildConfigFile);
+  const restoreCliEnv = applyEnvVariables(parsed.env);
 
   if (parsed.listBuilds) {
-    printBuildSummaries(loader, parsed);
-    return 0;
+    try {
+      printBuildSummaries(loader, parsed);
+      return 0;
+    } finally {
+      restoreCliEnv();
+    }
   }
-
-  const restoreCliEnv = applyEnvVariables(parsed.env);
 
   let builds: ResolvedDumpBuild[];
   try {
@@ -849,6 +853,6 @@ export function run(args: string[]): number {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(message);
-    return 1;
+    return 2;
   }
 }

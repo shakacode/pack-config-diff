@@ -70,15 +70,14 @@ export function loadConfigFile(filePath: string, mode: string = "production"): u
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (message.includes("Cannot find module")) {
+          // eslint-disable-next-line preserve-caught-error -- Error.cause requires ES2022+
           throw new Error(
             `Cannot load TypeScript config (${filePath}): ts-node is required. Install it with "npm install --save-dev ts-node".`,
-            { cause: error },
           );
         }
 
-        throw new Error(`Cannot load TypeScript config (${filePath}): ${message}`, {
-          cause: error,
-        });
+        // eslint-disable-next-line preserve-caught-error -- Error.cause requires ES2022+
+        throw new Error(`Cannot load TypeScript config (${filePath}): ${message}`);
       }
 
       return loadJsLikeConfig(absolutePath, mode);

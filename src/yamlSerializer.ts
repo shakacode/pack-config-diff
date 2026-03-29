@@ -129,6 +129,7 @@ export class YamlSerializer {
       cleaned.includes("\r") ||
       cleaned.startsWith(" ") ||
       cleaned.endsWith(" ") ||
+      cleaned.startsWith("|") ||
       cleaned.startsWith(">") ||
       cleaned.startsWith("?") ||
       cleaned.startsWith("- ") ||
@@ -240,8 +241,9 @@ export class YamlSerializer {
       }
 
       if (typeof value === "string" && value.includes("\n")) {
+        const cleaned = this.makePathRelative(value);
         lines.push(`${keyIndent}${safeKey}: |`);
-        for (const line of value.split("\n")) {
+        for (const line of cleaned.split("\n")) {
           lines.push(`${valueIndent}${line}`);
         }
       } else if (value instanceof RegExp || typeof value === "function") {

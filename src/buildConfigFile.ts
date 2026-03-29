@@ -47,9 +47,8 @@ export class BuildConfigFileLoader {
       return parsed;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to load build config file ${this.configFilePath}: ${errorMessage}`, {
-        cause: error,
-      });
+      // eslint-disable-next-line preserve-caught-error -- Error.cause requires ES2022+
+      throw new Error(`Failed to load build config file ${this.configFilePath}: ${errorMessage}`);
     }
   }
 
@@ -184,36 +183,37 @@ export class BuildConfigFileLoader {
   }
 
   private expandString(input: string, bundler: string): string {
-    let expanded = input.replace(/\$\{BUNDLER\}/g, bundler);
-
-    expanded = expanded.replace(
-      /\$\{([^}:]+):-([^}]*)\}/g,
-      (_match, variableName: string, defaultValue: string) => {
-        if (!BuildConfigFileLoader.isValidEnvVarName(variableName)) {
-          return `\${${variableName}:-${defaultValue}}`;
+    // Single-pass replacement to avoid double-expansion when an env var value
+    // itself contains ${...} patterns.
+    return input.replace(
+      /\$\{([^}:]+)(?::-([^}]*))?\}/g,
+      (match, variableName: string, defaultValue: string | undefined) => {
+        // ${BUNDLER} and ${BUNDLER:-...} both resolve to the CLI/config bundler
+        if (variableName === "BUNDLER") {
+          return bundler;
         }
 
-        return process.env[variableName] ?? defaultValue;
+        if (!BuildConfigFileLoader.isValidEnvVarName(variableName)) {
+          return match;
+        }
+
+        if (defaultValue !== undefined) {
+          // ${VAR:-default} — treat empty string as unset (matches bash `:- ` semantics)
+          return process.env[variableName] || defaultValue;
+        }
+
+        // ${VAR} — require the variable to be set
+        const value = process.env[variableName];
+        if (value === undefined) {
+          throw new Error(
+            `Environment variable '${variableName}' is not set (referenced in ${this.configFilePath}). ` +
+              `Set it or use \${${variableName}:-default} syntax for a default value.`,
+          );
+        }
+
+        return value;
       },
     );
-
-    expanded = expanded.replace(/\$\{([^}:]+)\}/g, (match, variableName: string) => {
-      if (!BuildConfigFileLoader.isValidEnvVarName(variableName)) {
-        return `\${${variableName}}`;
-      }
-
-      const value = process.env[variableName];
-      if (value === undefined) {
-        throw new Error(
-          `Environment variable '${variableName}' is not set (referenced in ${this.configFilePath}). ` +
-            `Set it or use \${${variableName}:-default} syntax for a default value.`,
-        );
-      }
-
-      return value;
-    });
-
-    return expanded;
   }
 
   private static isValidEnvVarName(name: string): boolean {

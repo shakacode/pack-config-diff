@@ -6,6 +6,7 @@ import type { FileOutput } from "./types";
 
 export class FileWriter {
   static writeMultipleFiles(outputs: FileOutput[], targetDir: string): void {
+    FileWriter.validateOutputPath(resolve(targetDir, "probe"));
     FileWriter.ensureDirectory(targetDir);
 
     outputs.forEach((output) => {
