@@ -148,7 +148,7 @@ Set metadata bundler label. Default: `webpack`.
 
 ### `--environment=<name>`
 
-Set metadata environment label. Default: `development`.
+Set metadata environment label. Default: `production`.
 
 ### `--config-type=<type>`
 
@@ -189,4 +189,5 @@ List available builds in the matrix and exit.
 | Code | Meaning                                                                             |
 | ---- | ----------------------------------------------------------------------------------- |
 | `0`  | Success (`diff`: no changes found; `dump`: export succeeded; or `--help` displayed) |
-| `1`  | Differences found (`diff`) or an error occurred                                     |
+| `1`  | Differences found (`diff`)                                                          |
+| `2`  | Error (invalid arguments, missing files, etc.)                                      |

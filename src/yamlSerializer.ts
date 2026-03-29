@@ -229,7 +229,7 @@ export class YamlSerializer {
   }
 
   private serializeObject(obj: Record<string, unknown>, indent: number, keyPath: string): string {
-    const keys = Object.keys(obj).sort();
+    const keys = Object.keys(obj);
     const constructorName = YamlSerializer.getConstructorName(obj);
 
     if (keys.length === 0) {

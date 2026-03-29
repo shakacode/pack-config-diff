@@ -43,6 +43,10 @@ function cleanValue(value: unknown, rootPath: string, key?: string, parent?: unk
     return "[FILTERED]";
   }
 
+  if (parentConstructor === "ProvidePlugin" && key !== undefined) {
+    return "[FILTERED]";
+  }
+
   if (typeof value === "function") {
     const source = value.toString();
     return source

@@ -1,4 +1,4 @@
-import { writeFileSync, mkdirSync, existsSync } from "fs";
+import { writeFileSync, mkdirSync, existsSync, realpathSync } from "fs";
 import { resolve, dirname, relative, isAbsolute, basename } from "path";
 import { tmpdir } from "os";
 
@@ -67,16 +67,32 @@ export class FileWriter {
     }
   }
 
+  private static resolveRealPath(target: string): string {
+    let current = target;
+    while (current !== dirname(current)) {
+      try {
+        return realpathSync(current) + target.slice(current.length);
+      } catch {
+        current = dirname(current);
+      }
+    }
+    return target;
+  }
+
   static validateOutputPath(outputPath: string): void {
     const absPath = resolve(outputPath);
     const cwd = process.cwd();
+
+    const realPath = FileWriter.resolveRealPath(absPath);
+    const realCwd = FileWriter.resolveRealPath(cwd);
+    const realTmp = FileWriter.resolveRealPath(tmpdir());
 
     const isWithin = (base: string, target: string): boolean => {
       const rel = relative(base, target);
       return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
     };
 
-    if (!isWithin(cwd, absPath) && !isWithin(tmpdir(), absPath)) {
+    if (!isWithin(realCwd, realPath) && !isWithin(realTmp, realPath)) {
       throw new Error(
         `Refusing to write to ${absPath} — path is outside current directory (${cwd}) and temp directory (${tmpdir()})`,
       );

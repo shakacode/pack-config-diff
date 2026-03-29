@@ -149,7 +149,6 @@ function parseOptionToken(arg: string): OptionToken {
 }
 
 function readOptionValue(
-  optionName: string,
   inlineValue: string | undefined,
   args: string[],
   index: number,
@@ -159,6 +158,9 @@ function readOptionValue(
   }
 
   const next = index + 1 < args.length ? args[index + 1] : undefined;
+  if (next?.startsWith("-")) {
+    return { value: undefined, consumesNext: false };
+  }
   return { value: next, consumesNext: next !== undefined };
 }
 
@@ -187,7 +189,7 @@ function parseDiffArgs(args: string[]): ParsedDiffArgs {
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     const { name, inlineValue } = parseOptionToken(arg);
-    const { value: nextValue, consumesNext } = readOptionValue(name, inlineValue, args, index);
+    const { value: nextValue, consumesNext } = readOptionValue(inlineValue, args, index);
 
     switch (name) {
       case "--left":
@@ -318,7 +320,7 @@ function parseDumpArgs(args: string[]): ParsedDumpArgs {
     }
 
     const { name, inlineValue } = parseOptionToken(arg);
-    const { value: nextValue, consumesNext } = readOptionValue(name, inlineValue, args, index);
+    const { value: nextValue, consumesNext } = readOptionValue(inlineValue, args, index);
 
     switch (name) {
       case "--format": {
@@ -693,6 +695,12 @@ function runDumpFromBuildConfig(parsed: ParsedDumpArgs): number {
     } finally {
       restoreEnv();
     }
+  }
+
+  if (outputs.length === 0) {
+    throw new Error(
+      "No config outputs were generated. Check that your config file exports a valid configuration.",
+    );
   }
 
   if (parsed.output) {

@@ -284,16 +284,16 @@ describe("YamlSerializer", () => {
       expect(output).toContain("{} # TerserPlugin");
     });
 
-    test("keys are sorted alphabetically", () => {
+    test("keys preserve insertion order", () => {
       const s = makeSerializer();
       const output = s.serialize({ z: 1, a: 2, m: 3 }, METADATA);
 
+      const zIndex = output.indexOf("z: 1");
       const aIndex = output.indexOf("a: 2");
       const mIndex = output.indexOf("m: 3");
-      const zIndex = output.indexOf("z: 1");
 
+      expect(zIndex).toBeLessThan(aIndex);
       expect(aIndex).toBeLessThan(mIndex);
-      expect(mIndex).toBeLessThan(zIndex);
     });
 
     test("special characters in keys are quoted", () => {

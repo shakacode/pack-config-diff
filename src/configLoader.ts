@@ -22,7 +22,9 @@ function clearRequireCache(moduleId: string, seen = new Set<string>()): void {
 
   seen.add(moduleId);
   for (const child of cachedModule.children) {
-    clearRequireCache(child.id, seen);
+    if (!child.id.includes(`${path.sep}node_modules${path.sep}`)) {
+      clearRequireCache(child.id, seen);
+    }
   }
 
   delete require.cache[moduleId];
