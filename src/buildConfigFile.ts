@@ -129,7 +129,9 @@ export class BuildConfigFileLoader {
     const absoluteResolvedPath = path.resolve(resolvedConfigPath);
     const relativeToCwd = path.relative(process.cwd(), absoluteResolvedPath);
     const escapesCwd =
-      relativeToCwd.startsWith(`..${path.sep}`) || relativeToCwd === ".." || path.isAbsolute(relativeToCwd);
+      relativeToCwd.startsWith(`..${path.sep}`) ||
+      relativeToCwd === ".." ||
+      path.isAbsolute(relativeToCwd);
 
     if (escapesCwd) {
       throw new Error(

@@ -243,13 +243,7 @@ describe("CLI integration", () => {
       fs.writeFileSync("-left.json", JSON.stringify({ mode: "production" }), "utf8");
       fs.writeFileSync("-right.json", JSON.stringify({ mode: "production" }), "utf8");
 
-      const code = run([
-        "--left",
-        "-left.json",
-        "--right",
-        "-right.json",
-        "--format=summary",
-      ]);
+      const code = run(["--left", "-left.json", "--right", "-right.json", "--format=summary"]);
 
       expect(code).toBe(0);
       expect(logSpy).toHaveBeenCalledWith("✅ No differences found");
