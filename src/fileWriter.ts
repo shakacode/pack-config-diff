@@ -9,8 +9,15 @@ export class FileWriter {
     FileWriter.validateOutputPath(resolve(targetDir, "probe"));
     FileWriter.ensureDirectory(targetDir);
 
+    const seenNames = new Set<string>();
     outputs.forEach((output) => {
       const safeName = basename(output.filename);
+      if (seenNames.has(safeName)) {
+        throw new Error(
+          `Filename collision: multiple outputs resolve to "${safeName}". Use distinct build names or config types.`,
+        );
+      }
+      seenNames.add(safeName);
       const filePath = resolve(targetDir, safeName);
       FileWriter.validateOutputPath(filePath);
       FileWriter.writeFile(filePath, output.content);

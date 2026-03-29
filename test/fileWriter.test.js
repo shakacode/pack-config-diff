@@ -148,6 +148,38 @@ describe("FileWriter", () => {
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Exported 1 config file(s)"));
     });
 
+    test("throws on duplicate basenames", () => {
+      const outputDir = path.join(tempDir, "exports");
+      const outputs = [
+        {
+          filename: "webpack-prod-client.yml",
+          content: "first\n",
+          metadata: {
+            exportedAt: "2025-01-01",
+            bundler: "webpack",
+            environment: "production",
+            configType: "client",
+            configCount: 1,
+          },
+        },
+        {
+          filename: "webpack-prod-client.yml",
+          content: "second\n",
+          metadata: {
+            exportedAt: "2025-01-01",
+            bundler: "webpack",
+            environment: "production",
+            configType: "client",
+            configCount: 1,
+          },
+        },
+      ];
+
+      expect(() => FileWriter.writeMultipleFiles(outputs, outputDir)).toThrow(
+        'Filename collision: multiple outputs resolve to "webpack-prod-client.yml"',
+      );
+    });
+
     test("strips path traversal from filenames", () => {
       const outputDir = path.join(tempDir, "exports");
       const outputs = [
