@@ -74,6 +74,7 @@ export class BuildConfigFileLoader {
     const bundler = cliBundler || build.bundler || config.default_bundler || "webpack";
     const environment = this.expandEnvironment(build.environment || {}, bundler);
     const resolvedConfigPath = this.expandString(build.config, bundler);
+    this.validateResolvedBuildPath(buildName, resolvedConfigPath);
 
     return {
       name: buildName,
@@ -113,6 +114,28 @@ export class BuildConfigFileLoader {
   private validateConfigPath(): void {
     if (this.configFilePath.includes("\u0000")) {
       throw new Error(`Invalid build config file path: ${this.configFilePath}`);
+    }
+  }
+
+  private validateResolvedBuildPath(buildName: string, resolvedConfigPath: string): void {
+    if (resolvedConfigPath.includes("\u0000")) {
+      throw new Error(`Invalid config path in build '${buildName}': ${resolvedConfigPath}`);
+    }
+
+    if (path.isAbsolute(resolvedConfigPath)) {
+      return;
+    }
+
+    const absoluteResolvedPath = path.resolve(resolvedConfigPath);
+    const relativeToCwd = path.relative(process.cwd(), absoluteResolvedPath);
+    const escapesCwd =
+      relativeToCwd.startsWith(`..${path.sep}`) || relativeToCwd === ".." || path.isAbsolute(relativeToCwd);
+
+    if (escapesCwd) {
+      throw new Error(
+        `Build '${buildName}' config path escapes current directory: ${resolvedConfigPath}. ` +
+          "Use an absolute path for intentionally external configs. Build config files are trusted input.",
+      );
     }
   }
 

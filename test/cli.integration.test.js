@@ -236,6 +236,28 @@ describe("CLI integration", () => {
     expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("ts-node is required"));
   });
 
+  test("supports dash-prefixed filenames as space-separated diff option values", () => {
+    const previousCwd = process.cwd();
+    process.chdir(tempDir);
+    try {
+      fs.writeFileSync("-left.json", JSON.stringify({ mode: "production" }), "utf8");
+      fs.writeFileSync("-right.json", JSON.stringify({ mode: "production" }), "utf8");
+
+      const code = run([
+        "--left",
+        "-left.json",
+        "--right",
+        "-right.json",
+        "--format=summary",
+      ]);
+
+      expect(code).toBe(0);
+      expect(logSpy).toHaveBeenCalledWith("✅ No differences found");
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
+
   test("dump command outputs YAML by default", () => {
     const configPath = path.join(tempDir, "webpack.config.js");
     fs.writeFileSync(
@@ -292,6 +314,22 @@ describe("CLI integration", () => {
     expect(code).toBe(0);
     expect(fs.readFileSync(outputPath, "utf8")).toContain("mode: production");
     expect(logSpy).not.toHaveBeenCalled();
+  });
+
+  test("dump supports dash-prefixed filenames for --output with space-separated value", () => {
+    const previousCwd = process.cwd();
+    process.chdir(tempDir);
+    try {
+      const configPath = path.join(tempDir, "webpack.config.js");
+      fs.writeFileSync(configPath, "module.exports = { mode: 'production' }\n", "utf8");
+
+      const code = run(["dump", configPath, "--output", "-report.yml"]);
+
+      expect(code).toBe(0);
+      expect(fs.existsSync(path.join(tempDir, "-report.yml"))).toBe(true);
+    } finally {
+      process.chdir(previousCwd);
+    }
   });
 
   test("dump --env applies variables during config load and restores afterward", () => {
@@ -471,5 +509,18 @@ describe("CLI integration", () => {
     expect(code).toBe(0);
     expect(fs.existsSync(path.join(outputDir, "webpack-dev-client.yml"))).toBe(true);
     expect(fs.existsSync(path.join(outputDir, "rspack-prod-client.yml"))).toBe(true);
+  });
+
+  test("dump --save-dir errors when a config factory returns no outputs", () => {
+    const configPath = path.join(tempDir, "empty.config.js");
+    const outputDir = path.join(tempDir, "exports");
+    fs.writeFileSync(configPath, "module.exports = () => []\n", "utf8");
+
+    const code = run(["dump", configPath, `--save-dir=${outputDir}`]);
+
+    expect(code).toBe(2);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("No config outputs were generated"),
+    );
   });
 });

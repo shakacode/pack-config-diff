@@ -172,6 +172,8 @@ Strip noisy plugin internals and compact function sources before serializing.
 
 Path to build matrix YAML file. Default: `config/pack-config-diff-builds.yml`.
 
+Security note: this file is treated as trusted input. Relative `config:` paths inside the matrix must stay within the current working directory; use absolute paths when you intentionally need to load a config outside the project tree.
+
 ### `--build=<name>`
 
 Dump a specific named build from the build matrix.

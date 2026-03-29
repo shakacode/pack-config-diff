@@ -108,7 +108,7 @@ export class YamlSerializer {
   private serializeString(str: string, indent = 0): string {
     const cleaned = this.makePathRelative(str);
 
-    if (cleaned.includes("\n")) {
+    if (YamlSerializer.shouldUseBlockLiteral(cleaned)) {
       const lines = cleaned.split("\n");
       const lineIndent = " ".repeat(indent + 2);
       return `|\n${lines.map((line) => lineIndent + line).join("\n")}`;
@@ -145,6 +145,7 @@ export class YamlSerializer {
         .replace(/\\/g, "\\\\")
         .replace(/"/g, '\\"')
         .replace(/\t/g, "\\t")
+        .replace(/\n/g, "\\n")
         .replace(/\r/g, "\\r")
         .replace(
           CONTROL_CHAR_GLOBAL_RE,
@@ -255,7 +256,7 @@ export class YamlSerializer {
         }
       }
 
-      if (typeof value === "string" && value.includes("\n")) {
+      if (typeof value === "string" && YamlSerializer.shouldUseBlockLiteral(value)) {
         const cleaned = this.makePathRelative(value);
         lines.push(`${keyIndent}${safeKey}: |`);
         for (const line of cleaned.split("\n")) {
@@ -360,5 +361,9 @@ export class YamlSerializer {
     } catch {
       return null;
     }
+  }
+
+  private static shouldUseBlockLiteral(value: string): boolean {
+    return value.includes("\n") && !value.includes("\r");
   }
 }

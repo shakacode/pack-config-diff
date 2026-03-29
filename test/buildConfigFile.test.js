@@ -233,6 +233,29 @@ describe("BuildConfigFileLoader", () => {
       const resolved = loader.resolveBuild("dev");
       expect(resolved.outputs).toEqual([]);
     });
+
+    test("rejects relative build config paths that escape current working directory", () => {
+      const filePath = writeConfig(
+        "escaping-path.yml",
+        'builds:\n  dev:\n    config: "../outside.config.js"\n',
+      );
+      const loader = new BuildConfigFileLoader(filePath);
+
+      expect(() => loader.resolveBuild("dev")).toThrow("config path escapes current directory");
+    });
+
+    test("allows absolute build config paths even when outside current working directory", () => {
+      const externalConfigPath = path.join(tempDir, "outside.config.js");
+      fs.writeFileSync(externalConfigPath, "module.exports = {}\n", "utf8");
+      const filePath = writeConfig(
+        "absolute-path.yml",
+        `builds:\n  dev:\n    config: "${externalConfigPath}"\n`,
+      );
+      const loader = new BuildConfigFileLoader(filePath);
+
+      const resolved = loader.resolveBuild("dev");
+      expect(resolved.config).toBe(externalConfigPath);
+    });
   });
 
   describe("resolveAllBuilds", () => {

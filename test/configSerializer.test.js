@@ -90,6 +90,26 @@ describe("serializeConfig", () => {
       expect(parsed.config.plugin).toBe("[MiniCssExtractPlugin]");
     });
 
+    test("does not collapse plain objects that define a constructor key", () => {
+      function SomeClass() {}
+      const result = serializeConfig(
+        {
+          plugin: {
+            constructor: SomeClass,
+            keep: true,
+          },
+        },
+        METADATA,
+        { format: "json" },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.config.plugin).toEqual({
+        constructor: "[Function: SomeClass]",
+        keep: true,
+      });
+    });
+
     test("preserves plain objects and arrays", () => {
       const config = {
         entry: { main: "./src/index.js" },

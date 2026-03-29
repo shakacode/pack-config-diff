@@ -151,6 +151,14 @@ describe("YamlSerializer", () => {
       expect(output).toContain("  line3");
     });
 
+    test("CRLF multiline strings are double-quoted with escaped control characters", () => {
+      const s = makeSerializer();
+      const output = s.serialize({ code: "line1\r\nline2" }, METADATA);
+
+      expect(output).toContain('code: "line1\\r\\nline2"');
+      expect(output).not.toContain("code: |");
+    });
+
     test("strings with double quotes are escaped", () => {
       const s = makeSerializer();
       const output = s.serialize({ val: 'say "hello"' }, METADATA);

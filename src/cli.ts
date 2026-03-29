@@ -158,7 +158,7 @@ function readOptionValue(
   }
 
   const next = index + 1 < args.length ? args[index + 1] : undefined;
-  if (next?.startsWith("-")) {
+  if (next && (next === "-h" || next === "--help" || next.startsWith("--"))) {
     return { value: undefined, consumesNext: false };
   }
   return { value: next, consumesNext: next !== undefined };
@@ -756,6 +756,11 @@ function runDumpSingle(parsed: ParsedDumpArgs): number {
         fallbackConfigType: metadata.configType,
         parsed,
       });
+      if (outputs.length === 0) {
+        throw new Error(
+          "No config outputs were generated. Check that your config file exports a valid configuration.",
+        );
+      }
       FileWriter.writeMultipleFiles(outputs, path.resolve(parsed.saveDir));
       return 0;
     }
