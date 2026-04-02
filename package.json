@@ -61,7 +61,7 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "postinstall": "test -f lefthook.yml && test -d .git && npx lefthook install || true",
+    "postinstall": "node -e \"const fs=require('fs');const cp=require('child_process');if(fs.existsSync('lefthook.yml')&&fs.existsSync('.git')){try{cp.execSync('npx --no-install lefthook install',{stdio:'inherit'});}catch{}}\"",
     "test": "jest",
     "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint --fix . && prettier --write .",

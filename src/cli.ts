@@ -741,7 +741,7 @@ function runDumpFromBuildConfig(parsed: ParsedDumpArgs): number {
     try {
       const resolvedEnvironment = resolveBuildEnvironmentLabel(build, parsed);
       const envLabel = resolvedEnvironment.label;
-      if (resolvedEnvironment.source === "build-node-env") {
+      if (resolvedEnvironment.source === "build-node-env" && parsed.warnSensitive) {
         console.error(
           `[pack-config-diff] Using build "${build.name}" NODE_ENV="${envLabel}" as dump environment label. Pass --environment to override.`,
         );

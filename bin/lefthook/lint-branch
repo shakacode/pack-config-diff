@@ -7,28 +7,40 @@ set -euo pipefail
 base_branch="${1:-origin/main}"
 
 # Get all changed files on this branch vs the base
-changed_files=$(git diff --name-only --diff-filter=ACMR "$base_branch"...HEAD)
+changed_files=()
+while IFS= read -r -d '' file; do
+  changed_files+=("$file")
+done < <(git diff --name-only --diff-filter=ACMR -z "$base_branch"...HEAD)
 
-if [ -z "$changed_files" ]; then
+if [ "${#changed_files[@]}" -eq 0 ]; then
   echo "No changed files to lint."
   exit 0
 fi
 
-js_files=$(echo "$changed_files" | grep -E '\.(js|ts|mjs)$' || true)
-format_files=$(echo "$changed_files" | grep -E '\.(js|ts|mjs|json|md|yml|yaml)$' || true)
+js_files=()
+format_files=()
+for file in "${changed_files[@]}"; do
+  case "$file" in
+    *.js|*.ts|*.mjs)
+      js_files+=("$file")
+      format_files+=("$file")
+      ;;
+    *.json|*.md|*.yml|*.yaml)
+      format_files+=("$file")
+      ;;
+  esac
+done
 
 errors=0
 
-if [ -n "$js_files" ]; then
+if [ "${#js_files[@]}" -gt 0 ]; then
   echo "Running ESLint on changed files..."
-  # shellcheck disable=SC2086
-  npx eslint $js_files || errors=$((errors + 1))
+  npx eslint -- "${js_files[@]}" || errors=$((errors + 1))
 fi
 
-if [ -n "$format_files" ]; then
+if [ "${#format_files[@]}" -gt 0 ]; then
   echo "Running Prettier check on changed files..."
-  # shellcheck disable=SC2086
-  npx prettier --check $format_files || errors=$((errors + 1))
+  npx prettier --check -- "${format_files[@]}" || errors=$((errors + 1))
 fi
 
 if [ "$errors" -gt 0 ]; then
