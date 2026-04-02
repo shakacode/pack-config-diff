@@ -1,5 +1,7 @@
 import { isAbsolute, relative } from "path";
 
+import { getConstructorName } from "./objectIntrospection";
+
 function makePathRelative(str: string, rootPath: string): string {
   if (!isAbsolute(str) || !isAbsolute(rootPath)) {
     return str;
@@ -16,20 +18,6 @@ function makePathRelative(str: string, rootPath: string): string {
   }
 
   return `./${rel}`;
-}
-
-function getConstructorName(value: unknown): string | undefined {
-  if (!value || typeof value !== "object") {
-    return undefined;
-  }
-
-  try {
-    const proto = Object.getPrototypeOf(value) as { constructor?: { name?: string } } | null;
-    if (!proto || proto === Object.prototype) return undefined;
-    return proto.constructor?.name;
-  } catch {
-    return undefined;
-  }
 }
 
 function cleanValue(value: unknown, rootPath: string, key?: string, parent?: unknown): unknown {

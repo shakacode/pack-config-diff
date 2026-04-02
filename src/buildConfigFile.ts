@@ -3,6 +3,7 @@ import path from "path";
 
 import { load as loadYaml, FAILSAFE_SCHEMA } from "js-yaml";
 
+import { isValidEnvVarName } from "./envVar";
 import type { DumpBuildConfigFile, ResolvedDumpBuild } from "./types";
 
 export const DEFAULT_BUILD_CONFIG_FILE = "config/pack-config-diff-builds.yml";
@@ -123,6 +124,7 @@ export class BuildConfigFileLoader {
     }
 
     if (path.isAbsolute(resolvedConfigPath)) {
+      // Absolute paths are intentionally allowed because this file is trusted input.
       return;
     }
 
@@ -218,7 +220,7 @@ export class BuildConfigFileLoader {
           return bundler;
         }
 
-        if (!BuildConfigFileLoader.isValidEnvVarName(variableName)) {
+        if (!isValidEnvVarName(variableName)) {
           return match;
         }
 
@@ -239,9 +241,5 @@ export class BuildConfigFileLoader {
         return value;
       },
     );
-  }
-
-  private static isValidEnvVarName(name: string): boolean {
-    return /^[A-Z_][A-Z0-9_]*$/i.test(name);
   }
 }

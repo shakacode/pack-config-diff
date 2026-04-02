@@ -91,6 +91,8 @@ Legend:
 pack-config-diff dump webpack.config.js --format=yaml --output=webpack-development-client.yml
 ```
 
+> Security note: `dump` output without `--clean` may include sensitive plugin/env values. Use `--clean` when sharing snapshots.
+
 ### More examples
 
 ```bash
@@ -103,6 +105,9 @@ pack-config-diff --left=baseline.json --right=current.json --format=markdown
 
 # Ignore plugin noise when comparing JS configs with class instances
 pack-config-diff --left=webpack.dev.js --right=webpack.prod.js --plugin-aware
+
+# Evaluate JS/TS function exports with a specific mode
+pack-config-diff --left=webpack.dev.js --right=webpack.prod.js --mode=development
 
 # Ignore rule reorder noise
 pack-config-diff --left=before.yaml --right=after.yaml --match-rules-by-test

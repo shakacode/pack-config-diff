@@ -43,6 +43,27 @@ describe("CLI integration", () => {
     expect(logSpy).toHaveBeenCalledWith("1 changes: +0 -0 ~1");
   });
 
+  test("diff --mode controls argv.mode passed to JS config factories", () => {
+    const left = path.join(tempDir, "left.js");
+    const right = path.join(tempDir, "right.js");
+
+    fs.writeFileSync(left, "module.exports = (env, argv) => ({ mode: argv.mode })\n", "utf8");
+    fs.writeFileSync(right, "module.exports = { mode: 'development' }\n", "utf8");
+
+    const defaultModeCode = run([`--left=${left}`, `--right=${right}`, "--format=summary"]);
+    const developmentModeCode = run([
+      `--left=${left}`,
+      `--right=${right}`,
+      "--format=summary",
+      "--mode=development",
+    ]);
+
+    expect(defaultModeCode).toBe(1);
+    expect(developmentModeCode).toBe(0);
+    expect(logSpy).toHaveBeenNthCalledWith(1, "1 changes: +0 -0 ~1");
+    expect(logSpy).toHaveBeenNthCalledWith(2, "✅ No differences found");
+  });
+
   test("returns 1 when differences are found", () => {
     const left = path.join(tempDir, "left.json");
     const right = path.join(tempDir, "right.json");
@@ -355,6 +376,18 @@ describe("CLI integration", () => {
     expect(payload.config.mode).toBe("production");
     expect(payload.config.projectPath).toBe("./src");
     expect(process.env.NODE_ENV).toBe(originalNodeEnv);
+  });
+
+  test("dump --env rejects invalid key names", () => {
+    const configPath = path.join(tempDir, "webpack.config.js");
+    fs.writeFileSync(configPath, "module.exports = { mode: 'production' }\n", "utf8");
+
+    const code = run(["dump", configPath, "--env=INVALID-NAME=value"]);
+
+    expect(code).toBe(2);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Invalid --env key: INVALID-NAME"),
+    );
   });
 
   test("dump --annotate injects inline docs for known keys", () => {

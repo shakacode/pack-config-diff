@@ -5,6 +5,7 @@ import { cleanConfig } from "./configCleaner";
 import { loadConfigFile } from "./configLoader";
 import { serializeConfig } from "./configSerializer";
 import { DiffEngine } from "./diffEngine";
+import { isValidEnvVarName } from "./envVar";
 import { FileWriter } from "./fileWriter";
 import { DiffFormatter } from "./formatter";
 import { PathNormalizer } from "./pathNormalizer";
@@ -16,6 +17,7 @@ type DumpOutputFormat = "yaml" | "json" | "inspect";
 interface ParsedDiffArgs {
   left?: string;
   right?: string;
+  mode: string;
   format: DiffOutputFormat;
   output?: string;
   includeUnchanged: boolean;
@@ -92,6 +94,7 @@ Diff Comparison Options:
   --match-rules-by-test         Match module.rules entries by rule test instead of index
   --no-normalize-paths          Disable automatic path normalization
   --path-separator=<sep>        Path separator for human-readable paths (default: ".")
+  --mode=<name>                 Mode passed to JS/TS config factories (default: production)
 
 Dump Options:
   --format=<format>             yaml, json, inspect (default: yaml)
@@ -103,7 +106,7 @@ Dump Options:
   --config-type=<type>          Config type metadata label (default: client)
   --app-root=<path>             Root path for relativizing absolute paths (default: cwd)
   --env=<KEY=VALUE>             Set env var before loading config (repeatable)
-  --clean                       Strip plugin internals and compact functions before dump
+  --clean                       Strip plugin internals and compact functions before dump (recommended for secrets safety)
 
 Build Matrix Options (dump):
   --config-file=<file>          Build config file (default: config/pack-config-diff-builds.yml)
@@ -174,6 +177,7 @@ function parseBundler(value: string): "webpack" | "rspack" {
 
 function parseDiffArgs(args: string[]): ParsedDiffArgs {
   const parsed: ParsedDiffArgs = {
+    mode: "production",
     format: "detailed",
     includeUnchanged: false,
     pluginAware: false,
@@ -276,6 +280,15 @@ function parseDiffArgs(args: string[]): ParsedDiffArgs {
           throw new Error("Missing value for --path-separator");
         }
         parsed.pathSeparator = nextValue;
+        if (consumesNext) {
+          index += 1;
+        }
+        break;
+      case "--mode":
+        if (!nextValue) {
+          throw new Error("Missing value for --mode");
+        }
+        parsed.mode = nextValue;
         if (consumesNext) {
           index += 1;
         }
@@ -540,6 +553,12 @@ function applyEnvVariables(entries: string[]): () => void {
   const previousValues = new Map<string, string | undefined>();
 
   parsedEntries.forEach(({ key, value }) => {
+    if (!isValidEnvVarName(key)) {
+      throw new Error(
+        `Invalid --env key: ${key}. Expected a shell-style env var name (e.g. NODE_ENV).`,
+      );
+    }
+
     if (!previousValues.has(key)) {
       previousValues.set(key, process.env[key]);
     }
@@ -556,6 +575,12 @@ function applyEnvVariables(entries: string[]): () => void {
       }
     });
   };
+}
+
+function warnPotentialSensitiveDumpOutput(): void {
+  console.error(
+    "[pack-config-diff] Warning: dump output without --clean may include sensitive values (for example, plugin definitions or env defaults).",
+  );
 }
 
 function serializeDumpPayload(
@@ -627,8 +652,22 @@ function buildSplitDumpOutputs(config: unknown, options: SplitDumpOptions): File
   });
 }
 
-function resolveBuildEnvironmentLabel(build: ResolvedDumpBuild, parsed: ParsedDumpArgs): string {
-  return parsed.environment || build.environment.NODE_ENV || "production";
+function resolveBuildEnvironmentLabel(
+  build: ResolvedDumpBuild,
+  parsed: ParsedDumpArgs,
+): { label: string; source: "explicit" | "build-node-env" | "default" } {
+  if (parsed.environment) {
+    return { label: parsed.environment, source: "explicit" };
+  }
+
+  if (build.environment.NODE_ENV) {
+    return {
+      label: build.environment.NODE_ENV,
+      source: "build-node-env",
+    };
+  }
+
+  return { label: "production", source: "default" };
 }
 
 function printBuildSummaries(loader: BuildConfigFileLoader, parsed: ParsedDumpArgs): void {
@@ -636,7 +675,7 @@ function printBuildSummaries(loader: BuildConfigFileLoader, parsed: ParsedDumpAr
 
   console.log(`Available builds in ${loader.filePath}:`);
   builds.forEach((build) => {
-    console.log(``);
+    console.log();
     console.log(`- ${build.name}`);
     if (build.description) {
       console.log(`  description: ${build.description}`);
@@ -680,7 +719,13 @@ function runDumpFromBuildConfig(parsed: ParsedDumpArgs): number {
     const restoreEnv = applyEnvVariables([...buildEnvEntries, ...parsed.env]);
 
     try {
-      const envLabel = resolveBuildEnvironmentLabel(build, parsed);
+      const resolvedEnvironment = resolveBuildEnvironmentLabel(build, parsed);
+      const envLabel = resolvedEnvironment.label;
+      if (resolvedEnvironment.source === "build-node-env") {
+        console.error(
+          `[pack-config-diff] Using build "${build.name}" NODE_ENV="${envLabel}" as dump environment label. Pass --environment to override.`,
+        );
+      }
       const loadedConfig = loadConfigFile(build.config, envLabel);
       outputs.push(
         ...buildSplitDumpOutputs(loadedConfig, {
@@ -791,6 +836,10 @@ function runDump(args: string[]): number {
     throw new Error("--annotate requires --format=yaml");
   }
 
+  if (!parsed.clean && !parsed.listBuilds) {
+    warnPotentialSensitiveDumpOutput();
+  }
+
   if (parsed.listBuilds || parsed.allBuilds || parsed.build) {
     return runDumpFromBuildConfig(parsed);
   }
@@ -810,8 +859,8 @@ function runDiff(args: string[]): number {
     throw new Error("Both --left and --right are required. Use --help for usage details.");
   }
 
-  const leftConfig = loadConfigFile(parsed.left);
-  const rightConfig = loadConfigFile(parsed.right);
+  const leftConfig = loadConfigFile(parsed.left, parsed.mode);
+  const rightConfig = loadConfigFile(parsed.right, parsed.mode);
 
   const normalizedLeft = maybeNormalizeConfig(leftConfig, parsed.normalizePaths);
   const normalizedRight = maybeNormalizeConfig(rightConfig, parsed.normalizePaths);

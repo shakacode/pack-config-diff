@@ -37,6 +37,20 @@ describe("YamlSerializer", () => {
       const multi = s.serialize({}, { ...METADATA, configCount: 3 });
       expect(multi).toContain("# Total Configs: 3");
     });
+
+    test("escapes metadata newlines to avoid header injection", () => {
+      const s = makeSerializer();
+      const output = s.serialize(
+        {},
+        {
+          ...METADATA,
+          environment: "prod\ninjected: true",
+        },
+      );
+
+      expect(output).toContain("# Environment: prod\\ninjected: true");
+      expect(output).not.toContain("# injected: true");
+    });
   });
 
   describe("primitive values", () => {

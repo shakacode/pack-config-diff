@@ -26,9 +26,9 @@ module.exports = {
 
 ### Function export
 
-If your config exports a function (common with webpack's `--env` support), the tool calls it automatically with `({}, { mode: "production" })`:
+If your config exports a function (common with webpack's `--env` support), the tool calls it automatically with `({}, { mode })`, where `mode` defaults to `"production"` and can be overridden via `--mode=<name>`:
 
-> **Note:** Both `--left` and `--right` configs are evaluated with `argv = { mode: "production" }`. This means any mode-dependent branching will reflect production settings for both sides. If your configs rely on `argv.mode` to differentiate environments, consider using static exports or pre-resolved JSON/YAML snapshots instead.
+> **Note:** Both `--left` and `--right` configs use the same `argv.mode` value. By default this is `"production"`. Set `--mode=development` (or another mode) when comparing mode-dependent factory exports.
 
 ```javascript
 // webpack.config.js

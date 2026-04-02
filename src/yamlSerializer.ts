@@ -1,6 +1,7 @@
 import { relative, isAbsolute } from "path";
 
 import { getDocDescription } from "./configDocs";
+import { getConstructorName } from "./objectIntrospection";
 import type { DumpMetadata } from "./types";
 
 const YAML_AMBIGUOUS_SCALAR = /^(~|null|true|false|yes|no|on|off|y|n)$/i;
@@ -37,15 +38,18 @@ export class YamlSerializer {
   }
 
   private static createHeader(metadata: DumpMetadata): string {
+    const sanitize = (value: string | number): string =>
+      String(value).replace(/\r\n|\r|\n/g, "\\n");
+
     const lines: string[] = [];
     lines.push(`# ${"=".repeat(77)}`);
     lines.push("# Webpack/Rspack Configuration Export");
-    lines.push(`# Generated: ${metadata.exportedAt}`);
-    lines.push(`# Environment: ${metadata.environment}`);
-    lines.push(`# Bundler: ${metadata.bundler}`);
-    lines.push(`# Config Type: ${metadata.configType}`);
+    lines.push(`# Generated: ${sanitize(metadata.exportedAt)}`);
+    lines.push(`# Environment: ${sanitize(metadata.environment)}`);
+    lines.push(`# Bundler: ${sanitize(metadata.bundler)}`);
+    lines.push(`# Config Type: ${sanitize(metadata.configType)}`);
     if (metadata.configCount > 1) {
-      lines.push(`# Total Configs: ${metadata.configCount}`);
+      lines.push(`# Total Configs: ${sanitize(metadata.configCount)}`);
     }
     lines.push(`# ${"=".repeat(77)}`);
     return lines.join("\n");
@@ -188,7 +192,7 @@ export class YamlSerializer {
     arr.forEach((item, index) => {
       const itemPath = `${keyPath}[${index}]`;
 
-      const pluginName = YamlSerializer.getConstructorName(item);
+      const pluginName = getConstructorName(item);
       const isPlugin = pluginName && /(^|\.)plugins\[\d+\]/.test(itemPath);
       const isEmpty =
         typeof item === "object" &&
@@ -231,7 +235,7 @@ export class YamlSerializer {
 
   private serializeObject(obj: Record<string, unknown>, indent: number, keyPath: string): string {
     const keys = Object.keys(obj);
-    const constructorName = YamlSerializer.getConstructorName(obj);
+    const constructorName = getConstructorName(obj);
 
     if (keys.length === 0) {
       if (constructorName) {
@@ -267,7 +271,7 @@ export class YamlSerializer {
         lines.push(`${keyIndent}${safeKey}: ${serialized}`);
       } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
         if (Object.keys(value).length === 0) {
-          const name = YamlSerializer.getConstructorName(value);
+          const name = getConstructorName(value);
           lines.push(`${keyIndent}${safeKey}: ${name ? `{} # ${name}` : "{}"}`);
         } else {
           lines.push(`${keyIndent}${safeKey}:`);
@@ -341,26 +345,6 @@ export class YamlSerializer {
     }
 
     return `./${rel}`;
-  }
-
-  private static getConstructorName(obj: unknown): string | null {
-    if (!obj || typeof obj !== "object") return null;
-    if (Array.isArray(obj)) return null;
-
-    try {
-      const proto = Object.getPrototypeOf(obj) as { constructor?: { name?: string } } | null;
-      if (!proto || proto === Object.prototype) return null;
-
-      const { constructor } = proto;
-      if (!constructor || typeof constructor !== "function") return null;
-
-      const constructorName = constructor.name;
-      if (!constructorName || constructorName === "Object") return null;
-
-      return constructorName;
-    } catch {
-      return null;
-    }
   }
 
   private static shouldUseBlockLiteral(value: string): boolean {

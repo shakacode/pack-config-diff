@@ -108,6 +108,14 @@ Change the separator used in human-readable paths. Default: `.`
 pack-config-diff --left=a.json --right=b.json --path-separator=/
 ```
 
+### `--mode=<name>`
+
+Mode passed as `argv.mode` when loading JS/TS function-export configs. Default: `production`.
+
+```bash
+pack-config-diff --left=webpack.dev.js --right=webpack.prod.js --mode=development
+```
+
 ## Other options
 
 ### `--help`, `-h`
@@ -148,7 +156,12 @@ Set metadata bundler label. Default: `webpack`.
 
 ### `--environment=<name>`
 
-Set metadata environment label. Default: `production`.
+Set metadata environment label.
+
+Defaults:
+
+- `dump <config-file>`: `production`
+- `dump --build/--all-builds`: `--environment` value, otherwise `build.environment.NODE_ENV` when present, otherwise `production`
 
 ### `--config-type=<type>`
 
@@ -166,13 +179,15 @@ Set an environment variable before loading the config. Repeatable.
 
 Strip noisy plugin internals and compact function sources before serializing.
 
+Security note: dump output without `--clean` can include sensitive values from plugin/env definitions. Use `--clean` when sharing artifacts.
+
 ## Build matrix options (`dump`)
 
 ### `--config-file=<file>`
 
 Path to build matrix YAML file. Default: `config/pack-config-diff-builds.yml`.
 
-Security note: this file is treated as trusted input. Relative `config:` paths inside the matrix must stay within the current working directory; use absolute paths when you intentionally need to load a config outside the project tree.
+Security note: this file is treated as trusted input. Relative `config:` paths inside the matrix must stay within the current working directory; use absolute paths when you intentionally need to load a config outside the project tree. Environment variable expansion in `config:` may also resolve to absolute paths and is allowed by this trust model.
 
 ### `--build=<name>`
 
