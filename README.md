@@ -184,6 +184,15 @@ See [Programmatic API docs](./docs/programmatic-api.md) for full API reference.
 - **[Programmatic API](./docs/programmatic-api.md)** — using pack-config-diff from Node.js
 - **[Releasing](./docs/releasing.md)** — how to publish new versions
 
+## Maintainer Automation
+
+- **Update changelog for release prep**: `/update-changelog release` (see [.claude/commands/update-changelog.md](./.claude/commands/update-changelog.md))
+- **Run release dry run**: `npm run release:dry-run`
+- **Publish release**: `npm run release` (script: [scripts/release.sh](./scripts/release.sh))
+- **Address PR reviews (Claude command)**: [.claude/commands/address-review.md](./.claude/commands/address-review.md)
+- **Address PR reviews (command mirror)**: [commands/address-review.md](./commands/address-review.md)
+- **Address PR reviews (portable workflow prompt)**: [.agents/workflows/address-review.md](./.agents/workflows/address-review.md)
+
 ## Tests
 
 ```bash
