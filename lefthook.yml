@@ -1,0 +1,19 @@
+pre-commit:
+  parallel: true
+  commands:
+    eslint:
+      glob: "*.{js,ts,mjs}"
+      run: npx eslint --fix {staged_files}
+      stage_fixed: true
+    prettier:
+      glob: "*.{js,ts,mjs,json,md,yml,yaml}"
+      run: npx prettier --write {staged_files}
+      stage_fixed: true
+    trailing-newlines:
+      run: bin/lefthook/check-trailing-newlines {staged_files}
+      stage_fixed: true
+
+pre-push:
+  commands:
+    lint-branch:
+      run: bin/lefthook/lint-branch

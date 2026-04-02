@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Lint all files changed on this branch compared to origin/main.
+# Intended for pre-push hook to catch issues before they hit CI.
+
+set -euo pipefail
+
+base_branch="${1:-origin/main}"
+
+# Get all changed files on this branch vs the base
+changed_files=$(git diff --name-only --diff-filter=ACMR "$base_branch"...HEAD)
+
+if [ -z "$changed_files" ]; then
+  echo "No changed files to lint."
+  exit 0
+fi
+
+js_files=$(echo "$changed_files" | grep -E '\.(js|ts|mjs)$' || true)
+format_files=$(echo "$changed_files" | grep -E '\.(js|ts|mjs|json|md|yml|yaml)$' || true)
+
+errors=0
+
+if [ -n "$js_files" ]; then
+  echo "Running ESLint on changed files..."
+  # shellcheck disable=SC2086
+  npx eslint $js_files || errors=$((errors + 1))
+fi
+
+if [ -n "$format_files" ]; then
+  echo "Running Prettier check on changed files..."
+  # shellcheck disable=SC2086
+  npx prettier --check $format_files || errors=$((errors + 1))
+fi
+
+if [ "$errors" -gt 0 ]; then
+  echo ""
+  echo "Lint errors found. Run 'npm run lint:fix' to auto-fix."
+  exit 1
+fi
+
+echo "All lint checks passed."

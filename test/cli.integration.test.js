@@ -443,7 +443,7 @@ describe("CLI integration", () => {
       [
         "builds:",
         "  dev:",
-        `    config: \"${configPath}\"`,
+        `    config: "${configPath}"`,
         "    environment:",
         "      NODE_ENV: development",
       ].join("\n"),

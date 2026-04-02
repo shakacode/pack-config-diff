@@ -52,6 +52,7 @@
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "jest": "^29.0.0",
+    "lefthook": "^2.1.4",
     "prettier": "^3.8.1",
     "ts-jest": "^29.0.0",
     "typescript": "^5.0.0",
@@ -60,6 +61,7 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
+    "postinstall": "test -f lefthook.yml && test -d .git && npx lefthook install || true",
     "test": "jest",
     "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint --fix . && prettier --write .",
