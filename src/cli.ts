@@ -45,6 +45,7 @@ interface ParsedDumpArgs {
   env: string[];
   clean: boolean;
   warnSensitive: boolean;
+  warnEnvLabel: boolean;
   build?: string;
   allBuilds: boolean;
   listBuilds: boolean;
@@ -111,6 +112,7 @@ Dump Options:
   --env=<KEY=VALUE>             Set env var before loading config (repeatable)
   --clean                       Strip plugin internals and compact functions before dump (recommended for secrets safety)
   --no-warn-sensitive           Suppress the sensitive-output warning when running dump without --clean
+  --no-warn-env-label           Suppress the build NODE_ENV environment-label note in build-matrix dump mode
 
 Build Matrix Options (dump):
   --config-file=<file>          Build config file (default: config/pack-config-diff-builds.yml)
@@ -320,6 +322,7 @@ function parseDumpArgs(args: string[]): ParsedDumpArgs {
     env: [],
     clean: false,
     warnSensitive: true,
+    warnEnvLabel: true,
     allBuilds: false,
     listBuilds: false,
     buildConfigFile: DEFAULT_BUILD_CONFIG_FILE,
@@ -437,6 +440,9 @@ function parseDumpArgs(args: string[]): ParsedDumpArgs {
         break;
       case "--no-warn-sensitive":
         parsed.warnSensitive = false;
+        break;
+      case "--no-warn-env-label":
+        parsed.warnEnvLabel = false;
         break;
       case "--config-file":
         if (!nextValue) {
@@ -741,7 +747,7 @@ function runDumpFromBuildConfig(parsed: ParsedDumpArgs): number {
     try {
       const resolvedEnvironment = resolveBuildEnvironmentLabel(build, parsed);
       const envLabel = resolvedEnvironment.label;
-      if (resolvedEnvironment.source === "build-node-env" && parsed.warnSensitive) {
+      if (resolvedEnvironment.source === "build-node-env" && parsed.warnEnvLabel) {
         console.error(
           `[pack-config-diff] Using build "${build.name}" NODE_ENV="${envLabel}" as dump environment label. Pass --environment to override.`,
         );

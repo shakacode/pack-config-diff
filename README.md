@@ -93,6 +93,7 @@ pack-config-diff dump webpack.config.js --format=yaml --mode=development --outpu
 
 > Security note: `dump` output without `--clean` may include sensitive plugin/env values. Use `--clean` when sharing snapshots.
 > For trusted internal automation, add `--no-warn-sensitive` to suppress the warning.
+> For build-matrix dumps, add `--no-warn-env-label` to suppress only the `NODE_ENV` fallback environment-label note.
 
 ### More examples
 
@@ -133,6 +134,9 @@ pack-config-diff dump --build=prod --config-file=config/pack-config-diff-builds.
 
 # Dump every build in the matrix
 pack-config-diff dump --all-builds --config-file=config/pack-config-diff-builds.yml
+
+# Keep sensitive warning but suppress build NODE_ENV label note
+pack-config-diff dump --build=dev --config-file=config/pack-config-diff-builds.yml --no-warn-env-label
 ```
 
 ## What can `--left` and `--right` be?
