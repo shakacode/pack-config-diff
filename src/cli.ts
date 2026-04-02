@@ -38,11 +38,13 @@ interface ParsedDumpArgs {
   saveDir?: string;
   annotate: boolean;
   bundler?: "webpack" | "rspack";
+  mode: string;
   environment?: string;
   configType?: string;
   appRoot: string;
   env: string[];
   clean: boolean;
+  warnSensitive: boolean;
   build?: string;
   allBuilds: boolean;
   listBuilds: boolean;
@@ -102,11 +104,13 @@ Dump Options:
   --save-dir=<dir>              Write split outputs to a directory
   --annotate                    Add inline docs (YAML only)
   --bundler=<webpack|rspack>    Bundler metadata label (or build override)
+  --mode=<name>                 Mode passed to JS/TS config factories (default: production)
   --environment=<name>          Environment metadata label
   --config-type=<type>          Config type metadata label (default: client)
   --app-root=<path>             Root path for relativizing absolute paths (default: cwd)
   --env=<KEY=VALUE>             Set env var before loading config (repeatable)
   --clean                       Strip plugin internals and compact functions before dump (recommended for secrets safety)
+  --no-warn-sensitive           Suppress the sensitive-output warning when running dump without --clean
 
 Build Matrix Options (dump):
   --config-file=<file>          Build config file (default: config/pack-config-diff-builds.yml)
@@ -311,9 +315,11 @@ function parseDumpArgs(args: string[]): ParsedDumpArgs {
   const parsed: ParsedDumpArgs = {
     format: "yaml",
     annotate: false,
+    mode: "production",
     appRoot: process.cwd(),
     env: [],
     clean: false,
+    warnSensitive: true,
     allBuilds: false,
     listBuilds: false,
     buildConfigFile: DEFAULT_BUILD_CONFIG_FILE,
@@ -381,6 +387,15 @@ function parseDumpArgs(args: string[]): ParsedDumpArgs {
           index += 1;
         }
         break;
+      case "--mode":
+        if (!nextValue) {
+          throw new Error("Missing value for --mode");
+        }
+        parsed.mode = nextValue;
+        if (consumesNext) {
+          index += 1;
+        }
+        break;
       case "--environment":
         if (!nextValue) {
           throw new Error("Missing value for --environment");
@@ -419,6 +434,9 @@ function parseDumpArgs(args: string[]): ParsedDumpArgs {
         break;
       case "--clean":
         parsed.clean = true;
+        break;
+      case "--no-warn-sensitive":
+        parsed.warnSensitive = false;
         break;
       case "--config-file":
         if (!nextValue) {
@@ -550,15 +568,17 @@ function applyEnvVariables(entries: string[]): () => void {
     };
   });
 
-  const previousValues = new Map<string, string | undefined>();
-
-  parsedEntries.forEach(({ key, value }) => {
+  parsedEntries.forEach(({ key }) => {
     if (!isValidEnvVarName(key)) {
       throw new Error(
         `Invalid --env key: ${key}. Expected a shell-style env var name (e.g. NODE_ENV).`,
       );
     }
+  });
 
+  const previousValues = new Map<string, string | undefined>();
+
+  parsedEntries.forEach(({ key, value }) => {
     if (!previousValues.has(key)) {
       previousValues.set(key, process.env[key]);
     }
@@ -726,7 +746,7 @@ function runDumpFromBuildConfig(parsed: ParsedDumpArgs): number {
           `[pack-config-diff] Using build "${build.name}" NODE_ENV="${envLabel}" as dump environment label. Pass --environment to override.`,
         );
       }
-      const loadedConfig = loadConfigFile(build.config, envLabel);
+      const loadedConfig = loadConfigFile(build.config, parsed.mode);
       outputs.push(
         ...buildSplitDumpOutputs(loadedConfig, {
           bundler: build.bundler,
@@ -783,7 +803,7 @@ function runDumpSingle(parsed: ParsedDumpArgs): number {
 
   try {
     const environment = parsed.environment || "production";
-    const loadedConfig = loadConfigFile(configFile, environment);
+    const loadedConfig = loadConfigFile(configFile, parsed.mode);
     const configCount = Array.isArray(loadedConfig) ? loadedConfig.length : 1;
     const metadata: DumpMetadata = {
       exportedAt: new Date().toISOString(),
@@ -836,7 +856,7 @@ function runDump(args: string[]): number {
     throw new Error("--annotate requires --format=yaml");
   }
 
-  if (!parsed.clean && !parsed.listBuilds) {
+  if (parsed.warnSensitive && !parsed.clean && !parsed.listBuilds) {
     warnPotentialSensitiveDumpOutput();
   }
 

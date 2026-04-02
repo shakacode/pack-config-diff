@@ -29,6 +29,7 @@ module.exports = {
 If your config exports a function (common with webpack's `--env` support), the tool calls it automatically with `({}, { mode })`, where `mode` defaults to `"production"` and can be overridden via `--mode=<name>`:
 
 > **Note:** Both `--left` and `--right` configs use the same `argv.mode` value. By default this is `"production"`. Set `--mode=development` (or another mode) when comparing mode-dependent factory exports.
+> For `dump`, `--mode` controls the same `argv.mode` factory argument, while `--environment` controls only exported metadata labels.
 
 ```javascript
 // webpack.config.js

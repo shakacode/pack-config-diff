@@ -154,9 +154,13 @@ Add inline docs for known webpack keys (YAML only).
 
 Set metadata bundler label. Default: `webpack`.
 
+### `--mode=<name>`
+
+Mode passed as `argv.mode` when loading JS/TS function-export configs for `dump`. Default: `production`.
+
 ### `--environment=<name>`
 
-Set metadata environment label.
+Set metadata environment label (header/output metadata only). This does not control `argv.mode`.
 
 Defaults:
 
@@ -180,6 +184,10 @@ Set an environment variable before loading the config. Repeatable.
 Strip noisy plugin internals and compact function sources before serializing.
 
 Security note: dump output without `--clean` can include sensitive values from plugin/env definitions. Use `--clean` when sharing artifacts.
+
+### `--no-warn-sensitive`
+
+Suppress the warning shown when running `dump` without `--clean`. Useful for trusted internal automation where warning noise is undesirable.
 
 ## Build matrix options (`dump`)
 
