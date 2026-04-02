@@ -52,6 +52,7 @@
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "jest": "^29.0.0",
+    "lefthook": "^2.1.4",
     "prettier": "^3.8.1",
     "ts-jest": "^29.0.0",
     "typescript": "^5.0.0",
@@ -60,6 +61,7 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
+    "postinstall": "node -e \"const fs=require('fs');const cp=require('child_process');if(fs.existsSync('lefthook.yml')&&fs.existsSync('.git')){try{cp.execSync('npx --no-install lefthook install',{stdio:'inherit'});}catch{}}\"",
     "test": "jest",
     "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint --fix . && prettier --write .",

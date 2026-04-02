@@ -1,34 +1,8 @@
 import { inspect } from "util";
 
+import { getConstructorName } from "./objectIntrospection";
 import { YamlSerializer } from "./yamlSerializer";
 import type { DumpMetadata, SerializeOptions } from "./types";
-
-function getSerializableConstructorName(value: unknown): string | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  try {
-    const proto = Object.getPrototypeOf(value) as { constructor?: { name?: string } } | null;
-    if (!proto || proto === Object.prototype) {
-      return null;
-    }
-
-    const { constructor } = proto;
-    if (!constructor || typeof constructor !== "function") {
-      return null;
-    }
-
-    const constructorName = constructor.name;
-    if (!constructorName || constructorName === "Object" || constructorName === "Array") {
-      return null;
-    }
-
-    return constructorName;
-  } catch {
-    return null;
-  }
-}
 
 function jsonReplacer(_key: string, value: unknown): unknown {
   if (typeof value === "bigint") {
@@ -43,7 +17,7 @@ function jsonReplacer(_key: string, value: unknown): unknown {
     return `[RegExp: ${value.toString()}]`;
   }
 
-  const constructorName = getSerializableConstructorName(value);
+  const constructorName = getConstructorName(value);
   if (constructorName) {
     return `[${constructorName}]`;
   }

@@ -43,6 +43,27 @@ describe("CLI integration", () => {
     expect(logSpy).toHaveBeenCalledWith("1 changes: +0 -0 ~1");
   });
 
+  test("diff --mode controls argv.mode passed to JS config factories", () => {
+    const left = path.join(tempDir, "left.js");
+    const right = path.join(tempDir, "right.js");
+
+    fs.writeFileSync(left, "module.exports = (env, argv) => ({ mode: argv.mode })\n", "utf8");
+    fs.writeFileSync(right, "module.exports = { mode: 'development' }\n", "utf8");
+
+    const defaultModeCode = run([`--left=${left}`, `--right=${right}`, "--format=summary"]);
+    const developmentModeCode = run([
+      `--left=${left}`,
+      `--right=${right}`,
+      "--format=summary",
+      "--mode=development",
+    ]);
+
+    expect(defaultModeCode).toBe(1);
+    expect(developmentModeCode).toBe(0);
+    expect(logSpy).toHaveBeenNthCalledWith(1, "1 changes: +0 -0 ~1");
+    expect(logSpy).toHaveBeenNthCalledWith(2, "✅ No differences found");
+  });
+
   test("returns 1 when differences are found", () => {
     const left = path.join(tempDir, "left.json");
     const right = path.join(tempDir, "right.json");
@@ -355,6 +376,161 @@ describe("CLI integration", () => {
     expect(payload.config.mode).toBe("production");
     expect(payload.config.projectPath).toBe("./src");
     expect(process.env.NODE_ENV).toBe(originalNodeEnv);
+  });
+
+  test("dump --env rejects invalid key names", () => {
+    const configPath = path.join(tempDir, "webpack.config.js");
+    fs.writeFileSync(configPath, "module.exports = { mode: 'production' }\n", "utf8");
+
+    const code = run(["dump", configPath, "--env=INVALID-NAME=value"]);
+
+    expect(code).toBe(2);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Invalid --env key: INVALID-NAME"),
+    );
+  });
+
+  test("dump --env validates all keys before mutating process.env", () => {
+    const configPath = path.join(tempDir, "webpack.config.js");
+    const originalNodeEnv = process.env.NODE_ENV;
+    fs.writeFileSync(configPath, "module.exports = { mode: 'production' }\n", "utf8");
+
+    const code = run([
+      "dump",
+      configPath,
+      "--env=NODE_ENV=development",
+      "--env=INVALID-NAME=value",
+    ]);
+
+    expect(code).toBe(2);
+    expect(process.env.NODE_ENV).toBe(originalNodeEnv);
+  });
+
+  test("dump --mode controls argv.mode independently from --environment metadata", () => {
+    const configPath = path.join(tempDir, "webpack.config.js");
+    fs.writeFileSync(
+      configPath,
+      "module.exports = (env, argv) => ({ factoryMode: argv.mode })\n",
+      "utf8",
+    );
+
+    const code = run([
+      "dump",
+      configPath,
+      "--format=json",
+      "--mode=development",
+      "--environment=staging",
+      "--no-warn-sensitive",
+    ]);
+
+    expect(code).toBe(0);
+    const payload = JSON.parse(logSpy.mock.calls[0][0]);
+    expect(payload.config.factoryMode).toBe("development");
+    expect(payload.metadata.environment).toBe("staging");
+  });
+
+  test("dump --build keeps metadata environment label separate from factory mode", () => {
+    const configPath = path.join(tempDir, "webpack.config.js");
+    const buildConfig = path.join(tempDir, "pack-config-diff-builds.yml");
+
+    fs.writeFileSync(
+      configPath,
+      "module.exports = (env, argv) => ({ factoryMode: argv.mode })\n",
+      "utf8",
+    );
+    fs.writeFileSync(
+      buildConfig,
+      [
+        "builds:",
+        "  dev:",
+        `    config: "${configPath}"`,
+        "    environment:",
+        "      NODE_ENV: development",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const code = run([
+      "dump",
+      "--build=dev",
+      `--config-file=${buildConfig}`,
+      "--format=json",
+      "--mode=production",
+      "--no-warn-sensitive",
+    ]);
+
+    expect(code).toBe(0);
+    const payload = JSON.parse(logSpy.mock.calls[0][0]);
+    expect(payload.config.factoryMode).toBe("production");
+    expect(payload.metadata.environment).toBe("development");
+  });
+
+  test("dump warns by default without --clean", () => {
+    const configPath = path.join(tempDir, "webpack.config.js");
+    fs.writeFileSync(configPath, "module.exports = { mode: 'production' }\n", "utf8");
+
+    const code = run(["dump", configPath, "--format=json"]);
+
+    expect(code).toBe(0);
+    const errorOutput = errorSpy.mock.calls.map((args) => String(args[0])).join("\n");
+    expect(errorOutput).toContain("Warning: dump output without --clean");
+  });
+
+  test("dump --no-warn-sensitive suppresses warning without --clean", () => {
+    const configPath = path.join(tempDir, "webpack.config.js");
+    fs.writeFileSync(configPath, "module.exports = { mode: 'production' }\n", "utf8");
+
+    const code = run(["dump", configPath, "--format=json", "--no-warn-sensitive"]);
+
+    expect(code).toBe(0);
+    const errorOutput = errorSpy.mock.calls.map((args) => String(args[0])).join("\n");
+    expect(errorOutput).not.toContain("Warning: dump output without --clean");
+  });
+
+  test("dump --build --no-warn-sensitive suppresses NODE_ENV label note", () => {
+    const configPath = path.join(tempDir, "webpack.config.js");
+    const buildConfig = path.join(tempDir, "pack-config-diff-builds.yml");
+
+    fs.writeFileSync(configPath, "module.exports = { mode: 'production' }\n", "utf8");
+    fs.writeFileSync(
+      buildConfig,
+      [
+        "builds:",
+        "  dev:",
+        `    config: "${configPath}"`,
+        "    environment:",
+        "      NODE_ENV: development",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const defaultCode = run([
+      "dump",
+      "--build=dev",
+      `--config-file=${buildConfig}`,
+      "--format=json",
+    ]);
+
+    expect(defaultCode).toBe(0);
+    let errorOutput = errorSpy.mock.calls.map((args) => String(args[0])).join("\n");
+    expect(errorOutput).toContain('Using build "dev" NODE_ENV="development" as dump environment');
+
+    logSpy.mockClear();
+    errorSpy.mockClear();
+
+    const suppressedCode = run([
+      "dump",
+      "--build=dev",
+      `--config-file=${buildConfig}`,
+      "--format=json",
+      "--no-warn-sensitive",
+    ]);
+
+    expect(suppressedCode).toBe(0);
+    errorOutput = errorSpy.mock.calls.map((args) => String(args[0])).join("\n");
+    expect(errorOutput).not.toContain(
+      'Using build "dev" NODE_ENV="development" as dump environment',
+    );
   });
 
   test("dump --annotate injects inline docs for known keys", () => {

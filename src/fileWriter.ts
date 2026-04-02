@@ -69,14 +69,19 @@ export class FileWriter {
 
   private static resolveRealPath(target: string): string {
     let current = target;
-    while (current !== dirname(current)) {
+    while (true) {
       try {
-        return realpathSync(current) + target.slice(current.length);
+        const realCurrent = realpathSync(current);
+        return resolve(realCurrent, relative(current, target));
       } catch {
-        current = dirname(current);
+        const parent = dirname(current);
+        if (parent === current) {
+          // If no ancestor is resolvable (unlikely), keep the original absolute path.
+          return target;
+        }
+        current = parent;
       }
     }
-    return target;
   }
 
   static validateOutputPath(outputPath: string): void {

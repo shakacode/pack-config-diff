@@ -88,8 +88,11 @@ Legend:
 ### Export a live config snapshot (`dump`)
 
 ```bash
-pack-config-diff dump webpack.config.js --format=yaml --output=webpack-development-client.yml
+pack-config-diff dump webpack.config.js --format=yaml --mode=development --output=webpack-development-client.yml
 ```
+
+> Security note: `dump` output without `--clean` may include sensitive plugin/env values. Use `--clean` when sharing snapshots.
+> For trusted internal automation, add `--no-warn-sensitive` to suppress the warning.
 
 ### More examples
 
@@ -103,6 +106,9 @@ pack-config-diff --left=baseline.json --right=current.json --format=markdown
 
 # Ignore plugin noise when comparing JS configs with class instances
 pack-config-diff --left=webpack.dev.js --right=webpack.prod.js --plugin-aware
+
+# Evaluate JS/TS function exports with a specific mode
+pack-config-diff --left=webpack.dev.js --right=webpack.prod.js --mode=development
 
 # Ignore rule reorder noise
 pack-config-diff --left=before.yaml --right=after.yaml --match-rules-by-test
@@ -118,6 +124,9 @@ pack-config-diff dump webpack.config.js --annotate
 
 # Dump as JSON with special value placeholders for functions/RegExp/class instances
 pack-config-diff dump webpack.config.js --format=json
+
+# Dump with independent mode + metadata environment labels
+pack-config-diff dump webpack.config.js --mode=development --environment=staging
 
 # Dump one named build from a build-matrix config
 pack-config-diff dump --build=prod --config-file=config/pack-config-diff-builds.yml --save-dir=./config-exports

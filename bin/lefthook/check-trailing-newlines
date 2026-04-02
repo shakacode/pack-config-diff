@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Ensure all staged files end with a trailing newline.
+# Usage: check-trailing-newlines file1 file2 ...
+
+set -euo pipefail
+
+fixed=0
+
+for file in "$@"; do
+  # Skip binary files and non-existent files
+  [ -f "$file" ] || continue
+  if file --mime-encoding "$file" | grep -q binary; then
+    continue
+  fi
+
+  # Check if file ends with a newline
+  if [ -s "$file" ] && [ "$(tail -c 1 "$file" | wc -l)" -eq 0 ]; then
+    echo "" >> "$file"
+    echo "Fixed missing trailing newline: $file"
+    fixed=$((fixed + 1))
+  fi
+done
+
+if [ "$fixed" -gt 0 ]; then
+  echo "Added trailing newlines to $fixed file(s)."
+fi
