@@ -188,6 +188,12 @@ Security note: dump output without `--clean` can include sensitive values from p
 ### `--no-warn-sensitive`
 
 Suppress the warning shown when running `dump` without `--clean`. Useful for trusted internal automation where warning noise is undesirable.
+This does not affect build-matrix environment-label notes.
+
+### `--no-warn-env-label`
+
+Suppress the build-matrix note shown when metadata `environment` falls back to `build.environment.NODE_ENV`.
+This does not suppress the sensitive-output warning from `dump` without `--clean`.
 
 ## Build matrix options (`dump`)
 

@@ -12,6 +12,10 @@ Release and review helpers:
 
 ## [Unreleased]
 
+### Changed
+
+- Decoupled dump warning controls: `--no-warn-sensitive` now only suppresses sensitive-output warnings, and new `--no-warn-env-label` suppresses build-matrix `NODE_ENV` environment-label notes. [Issue #23](https://github.com/shakacode/pack-config-diff/issues/23)
+
 ## [v1.0.0] - 2026-03-15
 
 ### Added
