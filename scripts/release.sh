@@ -102,6 +102,12 @@ version_published_to_npm() {
     return 1
   fi
 
+  if echo "$output" | grep -qE 'E401|E403|ENEEDAUTH'; then
+    log_error "npm authentication error while checking publish state. Run 'npm login' first."
+    echo "$output" >&2
+    exit 1
+  fi
+
   log_error "Unable to verify npm publish state for ${PACKAGE_NAME}@${RELEASE_VERSION}."
   echo "$output" >&2
   exit 1
@@ -156,10 +162,7 @@ preflight_checks() {
   fi
   echo "  ✓ On main branch"
 
-  if version_tag_exists; then
-    log_error "Git tag v${RELEASE_VERSION} already exists."
-    exit 1
-  fi
+  # version_tag_exists already confirmed false in check_version_differs — skip redundant network call
   echo "  ✓ Tag v${RELEASE_VERSION} does not exist"
 
   if ! npm whoami >/dev/null 2>&1; then
@@ -229,7 +232,7 @@ do_release() {
   )
 
   if [[ "$INITIAL_RELEASE" == true ]]; then
-    args+=("--npm.skipChecks" "--npm.ignoreVersion" "--npm.allowSameVersion")
+    args+=("--npm.skipChecks" "--npm.ignoreVersion")
   fi
 
   if [[ "$DRY_RUN" == true ]]; then
