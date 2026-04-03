@@ -23,6 +23,15 @@ Extracted from [Shakapacker](https://github.com/shakacode/shakapacker), battle-t
 npm install pack-config-diff
 ```
 
+## Contributor setup
+
+```bash
+npm install
+npm run hooks:install
+```
+
+Run `npm run hooks:install` once per clone to wire up lefthook locally.
+
 ## Quick start
 
 ### Compare two configs (`diff`)

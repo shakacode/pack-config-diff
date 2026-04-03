@@ -10,10 +10,10 @@ pre-commit:
       run: npx prettier --write {staged_files}
       stage_fixed: true
     trailing-newlines:
-      run: bin/lefthook/check-trailing-newlines {staged_files}
+      run: scripts/lefthook/check-trailing-newlines {staged_files}
       stage_fixed: true
 
 pre-push:
   commands:
     lint-branch:
-      run: bin/lefthook/lint-branch
+      run: scripts/lefthook/lint-branch

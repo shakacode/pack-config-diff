@@ -29,7 +29,7 @@
   },
   "files": [
     "dist/",
-    "bin/"
+    "bin/pack-config-diff"
   ],
   "engines": {
     "node": ">=16"
@@ -61,7 +61,7 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "postinstall": "node -e \"const fs=require('fs');const cp=require('child_process');if(fs.existsSync('lefthook.yml')&&fs.existsSync('.git')){try{cp.execSync('npx --no-install lefthook install',{stdio:'inherit'});}catch{}}\"",
+    "hooks:install": "lefthook install",
     "test": "jest",
     "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint --fix . && prettier --write .",
