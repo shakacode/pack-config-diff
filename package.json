@@ -61,7 +61,7 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "hooks:install": "npx --no-install lefthook install",
+    "hooks:install": "lefthook install",
     "test": "jest",
     "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint --fix . && prettier --write .",
