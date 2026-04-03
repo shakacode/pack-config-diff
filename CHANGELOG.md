@@ -12,11 +12,7 @@ Release and review helpers:
 
 ## [Unreleased]
 
-### Changed
-
-- Decoupled dump warning controls: `--no-warn-sensitive` now only suppresses sensitive-output warnings, and new `--no-warn-env-label` suppresses build-matrix `NODE_ENV` environment-label notes. [Issue #23](https://github.com/shakacode/pack-config-diff/issues/23)
-
-## [v1.0.0] - 2026-03-15
+## [v0.1.0] - 2026-04-02
 
 ### Added
 
@@ -30,6 +26,18 @@ Release and review helpers:
 - **Rich output formats**: detailed, summary, json, yaml, markdown.
 - **Contextual documentation mapping** for common webpack/rspack config keys.
 - **`prepare` script** for git installs so `dist/` builds automatically. [PR #5](https://github.com/shakacode/pack-config-diff/pull/5) by [justin808](https://github.com/justin808).
+- **`diff` and `dump` now accept `--mode` for JS/TS config factories, making bundle mode selection explicit during config evaluation.** [PR #21](https://github.com/shakacode/pack-config-diff/pull/21) by [justin808](https://github.com/justin808).
+- **`dump` now supports `--no-warn-env-label` to independently suppress build-matrix environment-label fallback notes.** [PR #25](https://github.com/shakacode/pack-config-diff/pull/25) by [justin808](https://github.com/justin808).
 
-[unreleased]: https://github.com/shakacode/pack-config-diff/compare/v1.0.0...HEAD
-[v1.0.0]: https://github.com/shakacode/pack-config-diff/releases/tag/v1.0.0
+### Changed
+
+- **CLI now uses diff-style exit codes: `0` for identical configs, `1` for differences found, and `2` for tool errors.** [PR #19](https://github.com/shakacode/pack-config-diff/pull/19) by [justin808](https://github.com/justin808).
+- **`--no-warn-sensitive` now suppresses only sensitive-output warnings; environment-label warnings are controlled separately.** [PR #25](https://github.com/shakacode/pack-config-diff/pull/25) by [justin808](https://github.com/justin808).
+
+### Fixed
+
+- **`dump` now validates `--env` names, sanitizes YAML header metadata, and resolves export paths more safely.** [PR #21](https://github.com/shakacode/pack-config-diff/pull/21) by [justin808](https://github.com/justin808).
+- **Removed development hook tooling from the published package and consumer install path to keep installs runtime-focused.** [PR #26](https://github.com/shakacode/pack-config-diff/pull/26) by [justin808](https://github.com/justin808).
+
+[unreleased]: https://github.com/shakacode/pack-config-diff/compare/v0.1.0...HEAD
+[v0.1.0]: https://github.com/shakacode/pack-config-diff/releases/tag/v0.1.0
