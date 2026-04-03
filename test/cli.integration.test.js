@@ -575,6 +575,40 @@ describe("CLI integration", () => {
     expect(errorOutput).toContain("Warning: dump output without --clean");
   });
 
+  test("dump --build --no-warn-sensitive --no-warn-env-label suppresses both warnings independently", () => {
+    const configPath = path.join(tempDir, "webpack.config.js");
+    const buildConfig = path.join(tempDir, "pack-config-diff-builds.yml");
+
+    fs.writeFileSync(configPath, "module.exports = { mode: 'production' }\n", "utf8");
+    fs.writeFileSync(
+      buildConfig,
+      [
+        "builds:",
+        "  dev:",
+        `    config: "${configPath}"`,
+        "    environment:",
+        "      NODE_ENV: development",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const code = run([
+      "dump",
+      "--build=dev",
+      `--config-file=${buildConfig}`,
+      "--format=json",
+      "--no-warn-sensitive",
+      "--no-warn-env-label",
+    ]);
+
+    expect(code).toBe(0);
+    const errorOutput = errorSpy.mock.calls.map((args) => String(args[0])).join("\n");
+    expect(errorOutput).not.toContain(
+      'Using build "dev" NODE_ENV="development" as dump environment',
+    );
+    expect(errorOutput).not.toContain("Warning: dump output without --clean");
+  });
+
   test("dump --annotate injects inline docs for known keys", () => {
     const configPath = path.join(tempDir, "webpack.config.js");
     fs.writeFileSync(configPath, "module.exports = { mode: 'production' }\n", "utf8");

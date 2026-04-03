@@ -112,7 +112,7 @@ Dump Options:
   --env=<KEY=VALUE>             Set env var before loading config (repeatable)
   --clean                       Strip plugin internals and compact functions before dump (recommended for secrets safety)
   --no-warn-sensitive           Suppress the sensitive-output warning when running dump without --clean
-  --no-warn-env-label           Suppress the build NODE_ENV environment-label note in build-matrix dump mode
+  --no-warn-env-label           Suppress the build NODE_ENV environment-label note (only applies in build-matrix mode; ignored for single-file dump)
 
 Build Matrix Options (dump):
   --config-file=<file>          Build config file (default: config/pack-config-diff-builds.yml)
