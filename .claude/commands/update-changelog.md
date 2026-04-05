@@ -87,6 +87,7 @@ When stamping a version header (`release` mode), compute the next version as fol
    - If changes include `### Breaking Changes` -> **major** bump
    - If changes include `### Added` -> **minor** bump
    - If changes only include `### Fixed`, `### Security`, `### Changed`, `### Removed` -> **patch** bump
+   - If there is no existing git tag and the package is not yet published to npm, keep the first public release at `0.1.0` even if unpublished work changed before launch
 
 3. **Compute the version**: Apply the bump to the latest tag (e.g., `v1.0.0` + minor -> `v1.1.0`)
 

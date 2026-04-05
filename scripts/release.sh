@@ -13,6 +13,7 @@ NC='\033[0m'
 
 DRY_RUN=false
 SKIP_TESTS=false
+INITIAL_RELEASE=false
 
 usage() {
   cat <<'EOF'
@@ -76,15 +77,57 @@ parse_version_from_changelog() {
 
 parse_current_version() {
   CURRENT_VERSION=$(node -p "require('./package.json').version")
+  PACKAGE_NAME=$(node -p "require('./package.json').name")
   log_info "package.json version: ${CURRENT_VERSION}"
 }
 
 # ── Compare versions ─────────────────────────────────────────────────────────
 
+version_tag_exists() {
+  if git rev-parse "v${RELEASE_VERSION}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  git ls-remote --exit-code --tags origin "refs/tags/v${RELEASE_VERSION}" >/dev/null 2>&1
+}
+
+version_published_to_npm() {
+  local output
+
+  if output=$(npm view "${PACKAGE_NAME}@${RELEASE_VERSION}" version --json 2>&1); then
+    return 0
+  fi
+
+  if echo "$output" | grep -q 'E404'; then
+    return 1
+  fi
+
+  if echo "$output" | grep -qE 'E401|E403|ENEEDAUTH'; then
+    log_error "npm authentication error while checking publish state. Run 'npm login' first."
+    echo "$output" >&2
+    exit 1
+  fi
+
+  log_error "Unable to verify npm publish state for ${PACKAGE_NAME}@${RELEASE_VERSION}."
+  echo "$output" >&2
+  exit 1
+}
+
 check_version_differs() {
   if [[ "$RELEASE_VERSION" == "$CURRENT_VERSION" ]]; then
-    log_info "No release needed — CHANGELOG.md version (${RELEASE_VERSION}) matches package.json."
-    exit 0
+    if version_tag_exists || version_published_to_npm; then
+      log_info "No release needed — v${RELEASE_VERSION} is already tagged or published."
+      exit 0
+    fi
+
+    INITIAL_RELEASE=true
+    log_info "Initial release detected — package version matches CHANGELOG.md, but v${RELEASE_VERSION} is not tagged or published yet."
+    return
+  fi
+
+  if version_tag_exists || version_published_to_npm; then
+    log_error "Release version v${RELEASE_VERSION} already exists as a tag or published npm version."
+    exit 1
   fi
 }
 
@@ -119,17 +162,8 @@ preflight_checks() {
   fi
   echo "  ✓ On main branch"
 
-  if git rev-parse "v${RELEASE_VERSION}" >/dev/null 2>&1; then
-    log_error "Git tag v${RELEASE_VERSION} already exists."
-    exit 1
-  fi
+  # version_tag_exists already confirmed false in check_version_differs — skip redundant network call
   echo "  ✓ Tag v${RELEASE_VERSION} does not exist"
-
-  if git ls-remote --exit-code --tags origin "refs/tags/v${RELEASE_VERSION}" >/dev/null 2>&1; then
-    log_error "Git tag v${RELEASE_VERSION} already exists on origin."
-    exit 1
-  fi
-  echo "  ✓ Tag v${RELEASE_VERSION} does not exist on origin"
 
   if ! npm whoami >/dev/null 2>&1; then
     log_error "Not logged in to npm. Run 'npm login' first."
@@ -168,6 +202,7 @@ show_summary_and_confirm() {
   echo "  Current version:  ${CURRENT_VERSION}"
   echo "  Release version:  ${RELEASE_VERSION}"
   echo "  npm dist-tag:     ${NPM_TAG}"
+  echo "  Initial release:  ${INITIAL_RELEASE}"
   echo "  Dry run:          ${DRY_RUN}"
   echo "════════════════════════════════════════════════════════════════"
   echo ""
@@ -196,8 +231,12 @@ do_release() {
     "--git.tagAnnotation=Release v\${version}"
   )
 
+  if [[ "$INITIAL_RELEASE" == true ]]; then
+    args+=("--npm.skipChecks" "--npm.ignoreVersion")
+  fi
+
   if [[ "$DRY_RUN" == true ]]; then
-    args+=("--dry-run" "--verbose")
+    args+=("--dry-run" "--verbose" "--ci")
   fi
 
   echo "  npx release-it ${args[*]}"

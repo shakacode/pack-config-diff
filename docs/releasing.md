@@ -2,6 +2,8 @@
 
 This project uses a changelog-driven release workflow. The target version is always read from `CHANGELOG.md` — there is no version argument. Update the changelog first, then run the release script.
 
+For the first public release, keep `CHANGELOG.md` and `package.json` at `0.1.0`. The release script detects that `v0.1.0` is not tagged or published yet and allows that initial publish before the later Shakapacker-backed `1.0.0`.
+
 ## Prerequisites
 
 1. **npm authentication**: `npm whoami` must succeed
@@ -45,11 +47,11 @@ npm run release
 The script will:
 
 1. Read the target version from the first `## [vX.Y.Z]` header in CHANGELOG.md
-2. Compare to `package.json` — exit if already at that version
+2. Compare to `package.json` — exit if already released, but allow the initial `0.1.0` publish when no tag or npm version exists yet
 3. Run pre-flight checks (clean git, main branch, npm auth, gh auth, tag doesn't exist)
 4. Run `npm test` and `npm run build`
 5. Show a summary and ask for confirmation
-6. Run `npx release-it` to bump `package.json`, commit, tag, and publish to npm
+6. Run `npx release-it` to update `package.json` when needed, commit, tag, and publish to npm
 7. Create a GitHub release from the CHANGELOG section via `gh`
 
 ### 3. Verify
@@ -76,7 +78,7 @@ npm install pack-config-diff@next
 `scripts/release.sh` performs these steps:
 
 1. Reads version from `CHANGELOG.md` (first `## [vX.Y.Z]` after `[Unreleased]`)
-2. Compares to `package.json` version — exits if no release needed
+2. Compares to `package.json` version — exits if that version is already tagged or published, but allows the first `0.1.0` publish when it is still unpublished
 3. Detects pre-release (version contains `-`) and sets npm dist-tag accordingly
 4. Pre-flight checks: clean git, main branch, no existing tag, npm/gh auth
 5. Runs `npm test && npm run build` (skippable with `--skip-tests`)

@@ -1,6 +1,6 @@
 {
   "name": "pack-config-diff",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Semantic configuration differ for webpack and rspack projects",
   "keywords": [
     "webpack",
