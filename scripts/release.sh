@@ -13,7 +13,10 @@ NC='\033[0m'
 
 DRY_RUN=false
 SKIP_TESTS=false
-INITIAL_RELEASE=false
+ALLOW_SAME_VERSION_RELEASE=false
+VERSION_STATUS="unknown"
+NPM_AUTHENTICATED=false
+GH_AUTHENTICATED=false
 
 usage() {
   cat <<'EOF'
@@ -83,6 +86,80 @@ parse_current_version() {
 
 # ── Compare versions ─────────────────────────────────────────────────────────
 
+compare_versions() {
+  node - "$1" "$2" <<'EOF'
+const [currentVersion, releaseVersion] = process.argv.slice(2);
+
+function parse(version) {
+  const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
+    prerelease: match[4] ? match[4].split(".") : null,
+  };
+}
+
+function comparePrerelease(a, b) {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+
+  const maxLength = Math.max(a.length, b.length);
+  for (let index = 0; index < maxLength; index += 1) {
+    const left = a[index];
+    const right = b[index];
+
+    if (left === undefined) return -1;
+    if (right === undefined) return 1;
+    if (left === right) continue;
+
+    const leftIsNumber = /^\d+$/.test(left);
+    const rightIsNumber = /^\d+$/.test(right);
+
+    if (leftIsNumber && rightIsNumber) {
+      return Number(left) < Number(right) ? -1 : 1;
+    }
+
+    if (leftIsNumber !== rightIsNumber) {
+      return leftIsNumber ? -1 : 1;
+    }
+
+    return left < right ? -1 : 1;
+  }
+
+  return 0;
+}
+
+const current = parse(currentVersion);
+const release = parse(releaseVersion);
+
+if (!current || !release) {
+  console.error(`Invalid semver comparison: ${currentVersion} vs ${releaseVersion}`);
+  process.exit(2);
+}
+
+for (const key of ["major", "minor", "patch"]) {
+  if (current[key] < release[key]) {
+    console.log(-1);
+    process.exit(0);
+  }
+
+  if (current[key] > release[key]) {
+    console.log(1);
+    process.exit(0);
+  }
+}
+
+console.log(comparePrerelease(current.prerelease, release.prerelease));
+EOF
+}
+
 version_tag_exists() {
   if git rev-parse "v${RELEASE_VERSION}" >/dev/null 2>&1; then
     return 0
@@ -103,9 +180,15 @@ version_published_to_npm() {
   fi
 
   if echo "$output" | grep -qE 'E401|E403|ENEEDAUTH'; then
-    log_error "npm authentication error while checking publish state. Run 'npm login' first."
-    echo "$output" >&2
-    exit 1
+    log_warn "npm auth blocked publish-state lookup; retrying anonymously against the public registry."
+
+    if output=$(NPM_CONFIG_USERCONFIG=/dev/null npm view "${PACKAGE_NAME}@${RELEASE_VERSION}" version --json 2>&1); then
+      return 0
+    fi
+
+    if echo "$output" | grep -q 'E404'; then
+      return 1
+    fi
   fi
 
   log_error "Unable to verify npm publish state for ${PACKAGE_NAME}@${RELEASE_VERSION}."
@@ -113,22 +196,46 @@ version_published_to_npm() {
   exit 1
 }
 
-check_version_differs() {
-  if [[ "$RELEASE_VERSION" == "$CURRENT_VERSION" ]]; then
-    if version_tag_exists || version_published_to_npm; then
-      log_info "No release needed — v${RELEASE_VERSION} is already tagged or published."
-      exit 0
-    fi
-
-    INITIAL_RELEASE=true
-    log_info "Initial release detected — package version matches CHANGELOG.md, but v${RELEASE_VERSION} is not tagged or published yet."
-    return
-  fi
-
-  if version_tag_exists || version_published_to_npm; then
-    log_error "Release version v${RELEASE_VERSION} already exists as a tag or published npm version."
+check_version_state() {
+  local comparison
+  if ! comparison=$(compare_versions "$CURRENT_VERSION" "$RELEASE_VERSION"); then
+    log_error "Unable to compare package.json version ${CURRENT_VERSION} with CHANGELOG.md version ${RELEASE_VERSION}."
     exit 1
   fi
+
+  case "$comparison" in
+    0)
+      VERSION_STATUS="already-updated"
+
+      if version_tag_exists || version_published_to_npm; then
+        log_info "No release needed — v${RELEASE_VERSION} is already tagged or published."
+        exit 0
+      fi
+
+      ALLOW_SAME_VERSION_RELEASE=true
+      log_info "Version confirmed: package.json already matches CHANGELOG.md at ${RELEASE_VERSION}."
+      ;;
+    -1)
+      VERSION_STATUS="needs-bump"
+
+      if version_tag_exists || version_published_to_npm; then
+        log_error "Release version v${RELEASE_VERSION} already exists as a tag or published npm version."
+        exit 1
+      fi
+
+      log_info "Version confirmed: release-it will update package.json/package-lock.json from ${CURRENT_VERSION} to ${RELEASE_VERSION}."
+      ;;
+    1)
+      VERSION_STATUS="ahead-of-changelog"
+      log_error "package.json version ${CURRENT_VERSION} is ahead of CHANGELOG.md version ${RELEASE_VERSION}."
+      log_error "Update CHANGELOG.md to the intended release version or reset package.json/package-lock.json before releasing."
+      exit 1
+      ;;
+    *)
+      log_error "Unexpected version comparison result: ${comparison}"
+      exit 1
+      ;;
+  esac
 }
 
 # ── Detect prerelease ────────────────────────────────────────────────────────
@@ -162,20 +269,30 @@ preflight_checks() {
   fi
   echo "  ✓ On main branch"
 
-  # version_tag_exists already confirmed false in check_version_differs — skip redundant network call
+  # version_tag_exists already confirmed false in check_version_state — skip redundant network call
   echo "  ✓ Tag v${RELEASE_VERSION} does not exist"
 
-  if ! npm whoami >/dev/null 2>&1; then
+  local npm_user=""
+
+  if npm_user=$(npm whoami 2>/dev/null); then
+    NPM_AUTHENTICATED=true
+    echo "  ✓ Logged in to npm as: ${npm_user}"
+  elif [[ "$DRY_RUN" == true ]]; then
+    log_warn "npm auth unavailable — continuing because this is a dry run. Actual publish still requires 'npm login'."
+  else
     log_error "Not logged in to npm. Run 'npm login' first."
     exit 1
   fi
-  echo "  ✓ Logged in to npm as: $(npm whoami)"
 
-  if ! gh auth status >/dev/null 2>&1; then
+  if gh auth status >/dev/null 2>&1; then
+    GH_AUTHENTICATED=true
+    echo "  ✓ GitHub CLI authenticated"
+  elif [[ "$DRY_RUN" == true ]]; then
+    log_warn "GitHub CLI auth unavailable — continuing because this is a dry run. Actual release creation still requires 'gh auth login'."
+  else
     log_error "Not authenticated with GitHub CLI. Run 'gh auth login' first."
     exit 1
   fi
-  echo "  ✓ GitHub CLI authenticated"
 }
 
 # ── Run tests ────────────────────────────────────────────────────────────────
@@ -201,8 +318,9 @@ show_summary_and_confirm() {
   echo "════════════════════════════════════════════════════════════════"
   echo "  Current version:  ${CURRENT_VERSION}"
   echo "  Release version:  ${RELEASE_VERSION}"
+  echo "  Version status:   ${VERSION_STATUS}"
   echo "  npm dist-tag:     ${NPM_TAG}"
-  echo "  Initial release:  ${INITIAL_RELEASE}"
+  echo "  Same version:     ${ALLOW_SAME_VERSION_RELEASE}"
   echo "  Dry run:          ${DRY_RUN}"
   echo "════════════════════════════════════════════════════════════════"
   echo ""
@@ -231,8 +349,10 @@ do_release() {
     "--git.tagAnnotation=Release v\${version}"
   )
 
-  if [[ "$INITIAL_RELEASE" == true ]]; then
+  if [[ "$ALLOW_SAME_VERSION_RELEASE" == true ]]; then
     args+=("--npm.skipChecks" "--npm.ignoreVersion")
+  elif [[ "$DRY_RUN" == true && "$NPM_AUTHENTICATED" != true ]]; then
+    args+=("--npm.skipChecks")
   fi
 
   if [[ "$DRY_RUN" == true ]]; then
@@ -291,7 +411,7 @@ main() {
 
   parse_version_from_changelog
   parse_current_version
-  check_version_differs
+  check_version_state
   detect_npm_tag
   preflight_checks
   run_tests
