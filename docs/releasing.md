@@ -51,6 +51,7 @@ The script will:
    - `package.json` already matches the release version: proceed if that version is still unpublished
    - `package.json` is behind the changelog version: let `release-it` update `package.json` and `package-lock.json`
    - `package.json` is ahead of the changelog version: stop with an error until the files agree
+   - when the version is already updated, the script passes the same-version flags to `release-it` so the first publish can still proceed
 3. Run pre-flight checks (clean git, main branch, tag doesn't exist, and auth checks for actual releases)
 4. Run `npm test` and `npm run build`
 5. Show a summary and ask for confirmation
