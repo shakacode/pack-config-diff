@@ -1,6 +1,6 @@
 # Releasing pack-config-diff
 
-This project uses a changelog-driven release workflow. The target version is always read from `CHANGELOG.md` — there is no version argument. Update the changelog first, then run the release script.
+This project uses a changelog-driven release workflow. The target version is always read from `CHANGELOG.md` — there is no version argument for the main release flow. Update the changelog first, then run the Node release script.
 
 For the first public release, keep `CHANGELOG.md` and `package.json` at `0.1.0`. The release script detects that `v0.1.0` is not tagged or published yet and allows that initial publish before the later Shakapacker-backed `1.0.0`.
 
@@ -71,15 +71,21 @@ Use npm semver pre-release format in the CHANGELOG header:
 ## [v2.0.0-rc.1] - 2026-04-01
 ```
 
-The script auto-detects the pre-release suffix and publishes with `--npm.tag=next` instead of `latest`. Users install with:
+The script follows the `react_on_rails` convention and uses the first pre-release identifier as the npm dist-tag:
+
+- `2.0.0-alpha.1` -> `alpha`
+- `2.0.0-beta.2` -> `beta`
+- `2.0.0-rc.1` -> `rc`
+
+Users install with the matching tag:
 
 ```bash
-npm install pack-config-diff@next
+npm install pack-config-diff@rc
 ```
 
 ## What the Script Does
 
-`scripts/release.sh` performs these steps:
+`scripts/release.mjs` performs these steps:
 
 1. Reads version from `CHANGELOG.md` (first `## [vX.Y.Z]` after `[Unreleased]`)
 2. Compares the `CHANGELOG.md` version to `package.json` and either reuses it, bumps to it, or stops if `package.json` is already ahead
@@ -89,7 +95,21 @@ npm install pack-config-diff@next
 6. Runs `npm test && npm run build` (skippable with `--skip-tests`)
 7. Shows summary and prompts for interactive confirmation
 8. Runs `npx release-it <version>` with CLI flags (no config file, no devDependency)
-9. Creates GitHub release via `gh release create` with notes from CHANGELOG section
+9. Creates or updates the GitHub release via `gh` with notes from the matching CHANGELOG section
+
+## GitHub Release Sync
+
+If npm publish/tag/push succeeds but the GitHub release needs to be recreated or refreshed from `CHANGELOG.md`, run:
+
+```bash
+npm run release:sync-github
+```
+
+Dry run:
+
+```bash
+npm run release:sync-github:dry-run
+```
 
 ## Troubleshooting
 
@@ -106,7 +126,7 @@ That is safe for `npm run release:dry-run`. Re-run `gh auth login` before `npm r
 Delete the tag (`git tag -d vX.Y.Z && git push origin :vX.Y.Z`), fix the issue, and re-run.
 
 **GitHub release failed after npm publish:**
-Run manually: `gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."`
+Run `npm run release:sync-github` to recreate or update the GitHub release from `CHANGELOG.md`.
 
 **Manual release fallback:**
 
