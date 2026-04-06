@@ -350,7 +350,7 @@ do_release() {
   )
 
   if [[ "$ALLOW_SAME_VERSION_RELEASE" == true ]]; then
-    args+=("--npm.skipChecks" "--npm.ignoreVersion")
+    args+=("--npm.skipChecks" "--npm.ignoreVersion" "--npm.allowSameVersion")
   elif [[ "$DRY_RUN" == true && "$NPM_AUTHENTICATED" != true ]]; then
     args+=("--npm.skipChecks")
   fi
