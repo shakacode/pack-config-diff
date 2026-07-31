@@ -7,7 +7,7 @@ After a release, run `/update-changelog` in Claude Code to analyze commits, writ
 Release and review helpers:
 
 - Release docs: [docs/releasing.md](docs/releasing.md)
-- Release scripts: [`scripts/release.sh`](scripts/release.sh), `npm run release:dry-run`, and `npm run release`
+- Release scripts: [`scripts/release.mjs`](scripts/release.mjs), `npm run release:dry-run`, and `npm run release`
 - Review workflows: [.claude/commands/address-review.md](.claude/commands/address-review.md), [commands/address-review.md](commands/address-review.md), and [.agents/workflows/address-review.md](.agents/workflows/address-review.md)
 
 ## [Unreleased]

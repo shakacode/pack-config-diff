@@ -210,7 +210,8 @@ See [Programmatic API docs](./docs/programmatic-api.md) for full API reference.
 
 - **Update changelog for release prep**: `/update-changelog release` (see [.claude/commands/update-changelog.md](./.claude/commands/update-changelog.md))
 - **Run release dry run**: `npm run release:dry-run`
-- **Publish release**: `npm run release` (script: [scripts/release.sh](./scripts/release.sh))
+- **Publish release**: `npm run release` (script: [scripts/release.mjs](./scripts/release.mjs))
+- **Re-sync GitHub release notes**: `npm run release:sync-github`
 - **Address PR reviews (Claude command)**: [.claude/commands/address-review.md](./.claude/commands/address-review.md)
 - **Address PR reviews (command mirror)**: [commands/address-review.md](./commands/address-review.md)
 - **Address PR reviews (portable workflow prompt)**: [.agents/workflows/address-review.md](./.agents/workflows/address-review.md)
